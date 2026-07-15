@@ -1,0 +1,181 @@
+# Vesta — Design System
+
+> **Single source of truth** for all UI/UX. Inspired by the **Linear Design System**: minimal, elegant, fast, distraction-free, meticulously crafted. Every screen emphasizes clean layouts, consistent spacing, refined typography, subtle gradients, soft shadows, rounded corners, tasteful glassmorphism, and fluid micro-interactions.
+>
+> **Product:** Vesta — a blood donation app that connects donors, recipients, hospitals, and blood banks to save lives.
+
+---
+
+## 1. Design Principles
+
+1. **Calm by default.** Surfaces are quiet. Color is used sparingly and with intent — the interface recedes so content leads.
+2. **One accent, used deliberately.** Blood red is the brand. It appears on primary actions, urgency, and the mark — never as decoration.
+3. **Depth through elevation, not borders.** Layers separate with subtle tonal shifts and soft shadows, not heavy strokes.
+4. **Motion is feedback, not spectacle.** Transitions are fast (150–300ms), spring-based, and always communicate cause and effect.
+5. **Density with air.** Information-rich, but never cramped. Generous line-height and consistent 4px-grid spacing.
+6. **Accessible always.** ≥ 4.5:1 text contrast, ≥ 44×44pt touch targets, respects reduce-motion and dynamic type.
+
+---
+
+## 2. Color Palette
+
+Colors are defined as semantic tokens in `src/constants/theme.ts` (`Colors.light` / `Colors.dark`). Never hardcode hex outside the token file.
+
+### Brand
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `brand` | `#E5484D` | `#F16A6F` | Primary accent, brand mark |
+| `brandStrong` | `#DC3D43` | `#E5484D` | Pressed primary |
+| `brandSubtle` | `#FEEBEC` | `#2A1416` | Tinted brand backgrounds |
+| `onBrand` | `#FFFFFF` | `#FFFFFF` | Text/icons on brand |
+
+### Surfaces (elevation ladder)
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `background` | `#FBFBFC` | `#08080A` | App canvas |
+| `surface` | `#FFFFFF` | `#131316` | Cards, sheets |
+| `surfaceElevated` | `#FFFFFF` | `#1B1B1F` | Popovers, elevated cards |
+| `surfaceSunken` | `#F4F4F6` | `#0E0E11` | Inset wells, inputs |
+
+### Text
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `text` | `#16161A` | `#F5F5F7` | Primary text |
+| `textSecondary` | `#60646C` | `#9A9AA5` | Secondary text |
+| `textTertiary` | `#8B8D98` | `#6C6C78` | Hints, captions, disabled |
+| `onColor` | `#FFFFFF` | `#FFFFFF` | Text on colored fills |
+
+### Lines
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `border` | `#EBEBEF` | `#26262B` | Hairlines, dividers |
+| `borderStrong` | `#DCDCE1` | `#34343B` | Focus outlines, emphasis |
+
+### Semantic status
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `success` / `successSubtle` | `#30A46C` / `#E7F6EC` | `#3DD68C` / `#0F2318` | Eligible, confirmed |
+| `warning` / `warningSubtle` | `#D97706` / `#FEF3E2` | `#F5A524` / `#291A08` | Caution, pending |
+| `danger` / `dangerSubtle` | `#E5484D` / `#FEEBEC` | `#F16A6F` / `#2A1416` | Critical, urgent, errors |
+| `info` / `infoSubtle` | `#3B82F6` / `#E8F1FE` | `#5B9DFF` / `#0C1B33` | Neutral info |
+
+### Urgency scale (emergency requests)
+`critical` → `danger` · `urgent` → `warning` · `moderate` → `info` · `routine` → `textSecondary`
+
+### Gradients
+- **Brand glow:** `#F16A6F → #E5484D → #C42B32` (135°) — hero cards, donor card.
+- **Surface sheen:** transparent → 6% white overlay, top-to-bottom on elevated cards (dark mode only).
+Use `expo-linear-gradient`. Gradients are subtle; never rainbow.
+
+---
+
+## 3. Typography
+
+System font stack (SF Pro / Roboto). Web falls back to `--font-display` (Inter/Spline Sans). Defined via `ThemedText` `type` variants.
+
+| Variant | Size / Line | Weight | Use |
+|---|---|---|---|
+| `display` | 34 / 40 | 700 | Screen hero numbers |
+| `title` | 28 / 34 | 700 | Screen titles |
+| `title2` | 22 / 28 | 700 | Section headers |
+| `headline` | 17 / 22 | 600 | Card titles, list headers |
+| `body` | 16 / 24 | 400 | Body copy |
+| `bodyStrong` | 16 / 24 | 600 | Emphasized body |
+| `callout` | 15 / 20 | 500 | Secondary content |
+| `subhead` | 14 / 20 | 500 | Metadata rows |
+| `footnote` | 13 / 18 | 500 | Captions |
+| `caption` | 12 / 16 | 600 | Labels, badges (often UPPERCASE, +0.4 tracking) |
+| `mono` | 13 / 18 | 500 | Codes, QR payloads |
+
+Tracking: titles `-0.4`, display `-0.6`, caption `+0.4`. Never more than **two** type sizes competing in one card.
+
+---
+
+## 4. Spacing & Layout
+
+**4px base grid.** Use the `Spacing` scale — never raw numbers.
+
+| Token | px |
+|---|---|
+| `xs` | 4 |
+| `sm` | 8 |
+| `md` | 12 |
+| `base` | 16 |
+| `lg` | 20 |
+| `xl` | 24 |
+| `2xl` | 32 |
+| `3xl` | 40 |
+| `4xl` | 56 |
+
+- Screen horizontal padding: `base` (16) on phones.
+- Card internal padding: `base`–`lg`.
+- Vertical rhythm between sections: `xl` (24).
+- Max content width: 640 (tablet/web centering).
+
+## 5. Radius & Elevation
+
+**Radius** (`Radius` token): `sm` 8 · `md` 12 · `lg` 16 · `xl` 20 · `2xl` 28 · `full` 999.
+Cards use `lg`–`xl`. Pills/badges use `full`. Buttons use `md`.
+
+**Shadow** (`Shadow` token) — soft, low-spread, never harsh:
+- `sm`: y1, blur3, 6% — inputs, subtle lift.
+- `md`: y4, blur12, 8% — cards.
+- `lg`: y10, blur28, 12% — sheets, floating elements, FAB.
+Dark mode reduces shadow opacity and adds a 1px top inner highlight instead.
+
+## 6. Components
+
+All primitives live in `src/components/ui/`. Compose, don't fork.
+
+- **Button** — variants: `primary` (brand fill), `secondary` (surface + border), `ghost` (transparent), `danger`. Sizes `sm`/`md`/`lg`. Full-width option. Press: scale 0.97 spring + optional haptic. Loading shows spinner, disables. Optional leading icon.
+- **Card** — `surface` bg, radius `xl`, shadow `md`, padding `lg`. Variants: `default`, `elevated`, `outline`, `tinted` (semantic subtle bg). Pressable variant adds scale-press.
+- **Badge / Pill** — `caption` text, radius `full`, tinted bg + colored text. Tones map to semantic + urgency colors. Optional dot.
+- **StatTile** — big `display` number + `caption` label, optional icon and delta.
+- **Input / Field** — `surfaceSunken` bg, radius `md`, label above, helper/error below. Focus ring uses `borderStrong`. 48pt min height.
+- **SegmentedControl** — pill track, animated selected thumb.
+- **Avatar** — circle, initials fallback, blood-type ring option.
+- **ListRow** — leading icon/avatar, title + subtitle, trailing value/chevron. 56pt min height.
+- **SectionHeader** — `title2` + optional trailing action link.
+- **ProgressRing / ProgressBar** — SVG, brand stroke, animated.
+- **BloodTypeGlyph** — pill showing type (A+, O−, …) with brand ring.
+- **QRCode** — SVG matrix for donor card.
+- **EmptyState** — centered icon, title, subtitle, optional action.
+- **Skeleton** — shimmer placeholder (reanimated), matches final layout.
+- **Sheet / Modal** — bottom sheet w/ grabber, radius `2xl` top, `lg` shadow, backdrop 40% scrim.
+- **Toast** — top, glass/surface, auto-dismiss, semantic accent bar.
+- **FAB** — 56pt circle, brand fill, `lg` shadow, bottom-right above tab bar.
+- **Header** — large-title screen header w/ optional back, subtitle, trailing action.
+
+### Glassmorphism
+Use `expo-glass-effect` `GlassView` on iOS 26+ (tab bar, floating headers, donor-card overlay); fall back to `surfaceElevated` + `border` + blur where unavailable. Never stack glass on glass. Keep content behind glass low-contrast.
+
+## 7. Motion
+
+Library: `react-native-reanimated` v4. Prefer springs.
+- **Standard spring:** `{ damping: 18, stiffness: 200, mass: 0.9 }`.
+- **Press feedback:** scale to 0.97, 120ms.
+- **Entrance:** fade + 8px rise, staggered 40ms per item (lists/cards).
+- **Screen transitions:** default native stack; modals slide up.
+- **Page/tab switch:** cross-fade content 180ms.
+- **Number counters, progress rings:** animate on mount (600ms ease-out).
+- **Success:** checkmark draw + subtle scale pop; pair with `expo-haptics` notificationSuccess.
+- Always honor `AccessibilityInfo.isReduceMotionEnabled` → disable transforms, keep opacity.
+
+## 8. States
+
+Every data surface implements: **loading** (skeleton, never spinner-only for content), **empty** (EmptyState with helpful action), **error** (inline retry), **success** (confirmation + haptic). Destructive actions require a confirm sheet/dialog.
+
+## 9. Iconography
+
+`@expo/vector-icons` (Ionicons primary, MaterialCommunityIcons for medical glyphs). Line style, 1.5–2px, sized 18/20/24. Icons are `textSecondary` unless active/branded.
+
+## 10. Accessibility
+
+- All interactive elements: `accessibilityRole`, `accessibilityLabel`, ≥44pt target.
+- Never encode meaning in color alone — pair urgency color with a label/icon.
+- Support light & dark; test both. Contrast ≥ 4.5:1 body, ≥ 3:1 large.
+- Respect reduce-motion and reduce-transparency.
+
+## 11. Voice & Tone
+
+Warm, clear, human. Encouraging without gamified pressure. "You're eligible to donate" over "Level up!". Emergency copy is direct and calm. Numbers celebrate impact ("You've helped save 9 lives").

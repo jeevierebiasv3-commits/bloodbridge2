@@ -1,0 +1,114 @@
+/** Core domain types for Vesta. */
+
+export type BloodType = 'O-' | 'O+' | 'A-' | 'A+' | 'B-' | 'B+' | 'AB-' | 'AB+';
+
+export const BLOOD_TYPES: BloodType[] = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
+
+export type Urgency = 'critical' | 'urgent' | 'moderate' | 'routine';
+
+export type RequestStatus = 'open' | 'partial' | 'fulfilled' | 'expired';
+
+export type Gender = 'male' | 'female' | 'other' | 'prefer_not';
+
+export interface HealthInfo {
+  weightKg?: number;
+  heightCm?: number;
+  chronicConditions?: string[];
+  medications?: string[];
+  lastMealHoursAgo?: number;
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  bloodType: BloodType;
+  gender?: Gender;
+  dateOfBirth?: string; // ISO
+  city: string;
+  region?: string;
+  avatarColor?: string;
+  isDonor: boolean;
+  health?: HealthInfo;
+  lastDonationDate?: string; // ISO
+  createdAt: string; // ISO
+}
+
+export interface Donation {
+  id: string;
+  date: string; // ISO
+  centerName: string;
+  city: string;
+  units: number;
+  type: 'whole' | 'plasma' | 'platelets' | 'power_red';
+}
+
+export interface EmergencyRequest {
+  id: string;
+  patientInitials: string;
+  bloodType: BloodType;
+  unitsNeeded: number;
+  unitsFulfilled: number;
+  urgency: Urgency;
+  hospital: string;
+  city: string;
+  distanceKm: number;
+  neededBy: string; // ISO
+  postedAt: string; // ISO
+  contactName: string;
+  contactPhone: string;
+  note?: string;
+  status: RequestStatus;
+  respondersCount: number;
+}
+
+export interface DonationCenter {
+  id: string;
+  name: string;
+  kind: 'hospital' | 'blood_bank' | 'campaign';
+  address: string;
+  city: string;
+  distanceKm: number;
+  openNow: boolean;
+  hours: string;
+  rating: number;
+  needsUrgent?: BloodType[];
+}
+
+export interface Appointment {
+  id: string;
+  centerName: string;
+  address: string;
+  date: string; // ISO datetime
+  status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
+  type: Donation['type'];
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string; // ionicon/material name
+  unlocked: boolean;
+  progress?: number; // 0..1 when locked
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  tag: string;
+  date: string; // ISO
+  tone: 'brand' | 'info' | 'success' | 'warning';
+}
+
+export interface EducationArticle {
+  id: string;
+  title: string;
+  summary: string;
+  minutes: number;
+  category: 'eligibility' | 'process' | 'health' | 'myths';
+  icon: string;
+  body: string[];
+}
