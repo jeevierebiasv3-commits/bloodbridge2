@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { View, type AccessibilityProps, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedProps,
   useSharedValue,
@@ -13,7 +13,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-type ProgressRingProps = {
+type ProgressRingProps = Pick<AccessibilityProps, 'accessibilityLabel'> & {
   /** 0..1 */
   progress: number;
   size?: number;
@@ -32,6 +32,7 @@ export function ProgressRing({
   trackColor,
   style,
   children,
+  accessibilityLabel,
 }: ProgressRingProps) {
   const theme = useTheme();
   const reduceMotion = useReduceMotion();
@@ -51,7 +52,11 @@ export function ProgressRing({
   }));
 
   return (
-    <View style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}>
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+      accessible={accessibilityLabel ? true : undefined}
+      accessibilityRole={accessibilityLabel ? 'progressbar' : undefined}
+      accessibilityLabel={accessibilityLabel}>
       <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
         <Circle
           cx={size / 2}

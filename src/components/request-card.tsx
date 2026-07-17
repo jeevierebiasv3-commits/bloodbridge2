@@ -20,14 +20,17 @@ import { EmergencyRequest, BloodType } from '@/types/domain';
 export function RequestCard({
   request,
   viewerType,
+  viewerId,
   onPress,
 }: {
   request: EmergencyRequest;
   viewerType?: BloodType;
+  viewerId?: string;
   onPress?: () => void;
 }) {
   const theme = useTheme();
-  const compatible = viewerType ? canDonateTo(viewerType, request.bloodType) : false;
+  const isOwn = !!viewerId && request.ownerId === viewerId;
+  const compatible = !isOwn && viewerType ? canDonateTo(viewerType, request.bloodType) : false;
   const fulfilled = request.unitsFulfilled / request.unitsNeeded;
 
   return (
@@ -71,7 +74,9 @@ export function RequestCard({
             {request.unitsFulfilled}/{request.unitsNeeded} units · {request.respondersCount} responding
           </ThemedText>
         </View>
-        {compatible ? (
+        {isOwn ? (
+          <Badge label="Your request" tone="info" />
+        ) : compatible ? (
           <Badge label="You can help" tone="success" />
         ) : null}
       </View>

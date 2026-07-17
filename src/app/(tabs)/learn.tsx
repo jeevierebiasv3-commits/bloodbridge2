@@ -10,9 +10,9 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Card, FadeIn, Gradient, ScreenHeader } from '@/components/ui';
+import { Card, FadeIn, ScreenHeader } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { BrandGradient, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { mockEducation } from '@/data/mock';
 import { EducationArticle } from '@/types/domain';
@@ -53,20 +53,20 @@ export default function LearnScreen() {
         <PressableScale
           scaleTo={0.985}
           onPress={() => router.push({ pathname: '/article/[id]', params: { id: featured.id } })}>
-          <Gradient style={styles.featured} colors={BrandGradient}>
-            <View style={styles.featuredIcon}>
-              <Ionicons name="sparkles" size={22} color="#FFFFFF" />
+          <View style={[styles.featured, { backgroundColor: theme.brandSubtle, borderColor: theme.border }]}>
+            <View style={[styles.featuredIcon, { backgroundColor: theme.surface }]}>
+              <Ionicons name="sparkles" size={22} color={theme.brand} />
             </View>
-            <ThemedText type="footnote" style={styles.featuredKicker}>
+            <ThemedText type="footnote" style={[styles.featuredKicker, { color: theme.brand }]}>
               FEATURED · {featured.minutes} MIN READ
             </ThemedText>
             <ThemedText type="title2" style={styles.featuredTitle}>
               {featured.title}
             </ThemedText>
-            <ThemedText type="subhead" style={styles.featuredSummary}>
+            <ThemedText type="subhead" color="textSecondary" style={styles.featuredSummary}>
               {featured.summary}
             </ThemedText>
-          </Gradient>
+          </View>
         </PressableScale>
       </FadeIn>
 
@@ -139,19 +139,19 @@ const styles = StyleSheet.create({
     borderRadius: Radius['2xl'],
     padding: Spacing.lg,
     gap: Spacing.xs,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   featuredIcon: {
     width: 44,
     height: 44,
     borderRadius: Radius.md,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
-  featuredKicker: { color: 'rgba(255,255,255,0.85)', letterSpacing: 0.6, fontWeight: '600' },
-  featuredTitle: { color: '#FFFFFF' },
-  featuredSummary: { color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  featuredKicker: { letterSpacing: 0.6, fontWeight: '600' },
+  featuredTitle: {},
+  featuredSummary: { marginTop: 2 },
   chips: { gap: Spacing.sm, paddingVertical: 2 },
   chip: {
     paddingHorizontal: Spacing.base,

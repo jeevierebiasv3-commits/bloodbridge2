@@ -10,9 +10,10 @@ import { Platform } from 'react-native';
 export const Colors = {
   light: {
     // Brand
-    brand: '#E5484D',
-    brandStrong: '#DC3D43',
+    brand: '#D9474D',
+    brandStrong: '#C93A42',
     brandSubtle: '#FEEBEC',
+    brandDeep: '#151A36',
     onBrand: '#FFFFFF',
     // Surfaces
     background: '#FBFBFC',
@@ -20,13 +21,13 @@ export const Colors = {
     surfaceElevated: '#FFFFFF',
     surfaceSunken: '#F4F4F6',
     // Text
-    text: '#16161A',
-    textSecondary: '#60646C',
-    textTertiary: '#8B8D98',
+    text: '#16192D',
+    textSecondary: '#596078',
+    textTertiary: '#7B8299',
     onColor: '#FFFFFF',
     // Lines
-    border: '#EBEBEF',
-    borderStrong: '#DCDCE1',
+    border: '#E8E9F0',
+    borderStrong: '#D5D8E4',
     // Status
     success: '#30A46C',
     successSubtle: '#E7F6EC',
@@ -39,9 +40,10 @@ export const Colors = {
   },
   dark: {
     // Brand
-    brand: '#F16A6F',
-    brandStrong: '#E5484D',
+    brand: '#FF777B',
+    brandStrong: '#F05C64',
     brandSubtle: '#2A1416',
+    brandDeep: '#0E1125',
     onBrand: '#FFFFFF',
     // Surfaces
     background: '#08080A',
@@ -49,13 +51,13 @@ export const Colors = {
     surfaceElevated: '#1B1B1F',
     surfaceSunken: '#0E0E11',
     // Text
-    text: '#F5F5F7',
-    textSecondary: '#9A9AA5',
-    textTertiary: '#6C6C78',
+    text: '#F7F7FB',
+    textSecondary: '#A5A8BC',
+    textTertiary: '#777B92',
     onColor: '#FFFFFF',
     // Lines
-    border: '#26262B',
-    borderStrong: '#34343B',
+    border: '#282B3D',
+    borderStrong: '#3A3E54',
     // Status
     success: '#3DD68C',
     successSubtle: '#0F2318',
@@ -71,18 +73,15 @@ export const Colors = {
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 export type ThemeColors = typeof Colors.light;
 
-/** Brand gradient stops (135deg). */
-export const BrandGradient = ['#F16A6F', '#E5484D', '#C42B32'] as const;
-
 export const Fonts = Platform.select({
   ios: {
-    sans: 'system-ui',
+    sans: 'System',
     serif: 'ui-serif',
     rounded: 'ui-rounded',
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'sans-serif',
     serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',

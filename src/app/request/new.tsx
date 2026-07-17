@@ -55,6 +55,7 @@ export default function NewRequestScreen() {
     const neededBy = new Date(now.getTime() + 1000 * 60 * 60 * 12);
     const request: EmergencyRequest = {
       id: `req-${now.getTime()}`,
+      ownerId: profile?.id,
       patientInitials: patientInitials.trim() || 'A.B.',
       bloodType,
       unitsNeeded: Math.max(1, Number(units) || 1),
@@ -74,7 +75,7 @@ export default function NewRequestScreen() {
     void addRequest(request);
     haptics.success();
     toast.show('Request posted to the emergency feed', 'success');
-    router.back();
+    router.replace({ pathname: '/request/[id]', params: { id: request.id } });
   };
 
   return (

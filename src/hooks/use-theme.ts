@@ -1,6 +1,6 @@
 /**
  * Resolves the active theme. Returns the color map plus the scheme name and a
- * convenience `isDark` flag for elevation/gradient adjustments.
+ * convenience `isDark` flag for elevation adjustments.
  * https://docs.expo.dev/guides/color-schemes/
  */
 

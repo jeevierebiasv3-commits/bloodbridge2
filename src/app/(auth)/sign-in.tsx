@@ -11,8 +11,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Button, FadeIn, Gradient, Input } from '@/components/ui';
-import { BrandGradient, Radius, Spacing } from '@/constants/theme';
+import { Button, FadeIn, Input } from '@/components/ui';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptics } from '@/lib/haptics';
 import { useAppStore } from '@/store/app-store';
@@ -70,9 +70,9 @@ export default function SignInScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <FadeIn>
-          <Gradient colors={BrandGradient} style={styles.mark}>
+          <View style={[styles.mark, { backgroundColor: theme.brandDeep }]}>
             <Ionicons name="water" size={32} color="#fff" />
-          </Gradient>
+          </View>
           <ThemedText type="display" style={styles.title}>
             Welcome back
           </ThemedText>

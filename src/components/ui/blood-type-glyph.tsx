@@ -19,7 +19,7 @@ export function BloodTypeGlyph({
   type: BloodType;
   size?: Size;
   filled?: boolean;
-  /** Render for placement on a brand/gradient surface (white treatment). */
+  /** Render for placement on a dark brand surface (white treatment). */
   onDark?: boolean;
 }) {
   const theme = useTheme();

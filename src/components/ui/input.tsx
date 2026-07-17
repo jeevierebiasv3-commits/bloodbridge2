@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import { ThemedText } from '../themed-text';
@@ -41,7 +41,7 @@ export function Input({ label, icon, error, hint, style, ...rest }: InputProps) 
           />
         ) : null}
         <TextInput
-          style={[styles.input, { color: theme.text }, style]}
+          style={[styles.input, { color: theme.text, fontFamily: Fonts.sans }, style]}
           placeholderTextColor={theme.textTertiary}
           onFocus={(e) => {
             setFocused(true);

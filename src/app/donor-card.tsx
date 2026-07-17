@@ -1,7 +1,7 @@
 /**
- * Digital donor card (modal). A premium, gradient card with the donor's blood
+ * Digital donor card (modal). A premium, solid-color card with the donor's blood
  * type and a scannable QR code for verification at check-in. See design.md
- * §Donor card, §6 Components (QRCode, Gradient).
+ * §Donor card, §6 Components (QRCode, solid brand surface).
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -10,9 +10,9 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Button, FadeIn, Gradient, QRCode } from '@/components/ui';
+import { Button, FadeIn, QRCode } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { BrandGradient, Radius, Shadow, Spacing } from '@/constants/theme';
+import { Radius, Shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { computeEligibility } from '@/lib/blood';
 import { longDate } from '@/lib/format';
@@ -47,7 +47,7 @@ export default function DonorCardScreen() {
       <View style={styles.center}>
         <FadeIn>
           <View style={[styles.card, Shadow.lg]}>
-            <Gradient colors={BrandGradient} style={styles.cardGradient}>
+            <View style={[styles.cardSurface, { backgroundColor: theme.brandDeep }]}>
               <View style={styles.cardHead}>
                 <View>
                   <ThemedText type="caption" style={styles.cardBrand}>
@@ -57,8 +57,8 @@ export default function DonorCardScreen() {
                     {profile.fullName}
                   </ThemedText>
                 </View>
-                <View style={styles.bloodBadge}>
-                  <ThemedText type="title2" style={styles.bloodText}>
+                <View style={[styles.bloodBadge, { backgroundColor: theme.brand, borderColor: theme.onBrand }]}>
+                  <ThemedText type="title2" style={[styles.bloodText, { color: theme.onBrand }]}>
                     {profile.bloodType}
                   </ThemedText>
                 </View>
@@ -86,7 +86,7 @@ export default function DonorCardScreen() {
                   </ThemedText>
                 </View>
               </View>
-            </Gradient>
+            </View>
           </View>
         </FadeIn>
 
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   close: { width: 40, height: 40, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl, gap: Spacing.lg },
   card: { width: '100%', maxWidth: 360, borderRadius: Radius['2xl'], overflow: 'hidden' },
-  cardGradient: { padding: Spacing.xl, gap: Spacing.xl },
+  cardSurface: { padding: Spacing.xl, gap: Spacing.xl },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardBrand: { color: 'rgba(255,255,255,0.7)', letterSpacing: 1.5 },
   cardName: { color: '#FFFFFF', marginTop: 4 },
@@ -125,13 +125,11 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: Radius.full,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bloodText: { color: '#FFFFFF', fontSize: 18 },
+  bloodText: { fontSize: 18 },
   qrWrap: {
     alignSelf: 'center',
     backgroundColor: '#FFFFFF',

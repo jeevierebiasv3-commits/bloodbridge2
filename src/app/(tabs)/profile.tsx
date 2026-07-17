@@ -37,7 +37,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { profile, donations, signOut } = useAppStore();
+  const { profile, donations, signOut, resetDemoData } = useAppStore();
   const [confirmOut, setConfirmOut] = useState(false);
 
   if (!profile) return null;
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
             <View style={styles.identityText}>
               <ThemedText type="title2">{profile.fullName}</ThemedText>
               <ThemedText type="subhead" color="textSecondary">
-                {profile.isDonor ? 'Registered donor' : 'Member'} · {donations.length} donations
+                Donor · {donations.length} donations
               </ThemedText>
             </View>
             <BloodTypeGlyph type={profile.bloodType} size="sm" filled />
@@ -142,6 +142,25 @@ export default function ProfileScreen() {
           </PressableScale>
         </FadeIn>
 
+        {__DEV__ ? (
+          <FadeIn delay={280}>
+            <PressableScale
+              haptic="light"
+              onPress={async () => {
+                await resetDemoData();
+                toast.show('Demo data reset to seed', 'info');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Reset demo data"
+              style={[styles.devReset, { borderColor: theme.border, backgroundColor: theme.surfaceSunken }]}>
+              <Ionicons name="refresh-outline" size={16} color={theme.textSecondary} />
+              <ThemedText type="footnote" color="textSecondary">
+                Reset demo data
+              </ThemedText>
+            </PressableScale>
+          </FadeIn>
+        ) : null}
+
         <ThemedText type="caption" color="textTertiary" style={styles.version}>
           Vesta · v1.0.0
         </ThemedText>
@@ -150,14 +169,14 @@ export default function ProfileScreen() {
       <ConfirmSheet
         visible={confirmOut}
         title="Sign out?"
-        message="Your data stays on this device. You can sign back in anytime."
+        message="This clears your profile and app data on this device and returns you to the start."
         confirmLabel="Sign out"
         destructive
         onCancel={() => setConfirmOut(false)}
         onConfirm={async () => {
           setConfirmOut(false);
           await signOut();
-          router.replace('/(auth)/sign-in');
+          router.replace('/');
         }}
       />
     </View>
@@ -259,6 +278,16 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  devReset: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    height: 40,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderStyle: 'dashed',
   },
   version: { textAlign: 'center', letterSpacing: 0.4 },
 });

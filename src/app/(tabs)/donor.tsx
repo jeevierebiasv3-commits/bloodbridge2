@@ -17,13 +17,12 @@ import {
   Card,
   EmptyState,
   FadeIn,
-  Gradient,
   ProgressRing,
   ScreenHeader,
   StatTile,
 } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { BrandGradient, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { computeEligibility } from '@/lib/blood';
 import { longDate, shortDate } from '@/lib/format';
@@ -70,7 +69,7 @@ export default function DonorScreen() {
       {/* Digital donor card teaser */}
       <FadeIn>
         <PressableScale scaleTo={0.985} onPress={() => router.push('/donor-card')}>
-          <Gradient style={styles.donorCard} colors={BrandGradient}>
+          <View style={[styles.donorCard, { backgroundColor: theme.brandDeep }]}>
             <View style={styles.donorCardTop}>
               <View>
                 <ThemedText type="footnote" style={styles.cardLabel}>
@@ -80,8 +79,8 @@ export default function DonorScreen() {
                   {profile.fullName}
                 </ThemedText>
               </View>
-              <View style={styles.cardType}>
-                <ThemedText type="title" style={styles.cardTypeText}>
+              <View style={[styles.cardType, { backgroundColor: theme.brand }]}>
+                <ThemedText type="title" style={[styles.cardTypeText, { color: theme.onBrand }]}>
                   {profile.bloodType}
                 </ThemedText>
               </View>
@@ -92,7 +91,7 @@ export default function DonorScreen() {
               </ThemedText>
               <Ionicons name="qr-code" size={22} color="#FFFFFF" />
             </View>
-          </Gradient>
+          </View>
         </PressableScale>
       </FadeIn>
 
@@ -255,12 +254,11 @@ const styles = StyleSheet.create({
   cardLabel: { color: 'rgba(255,255,255,0.8)', letterSpacing: 1, fontWeight: '600' },
   cardName: { color: '#FFFFFF', marginTop: 2 },
   cardType: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
-  cardTypeText: { color: '#FFFFFF' },
+  cardTypeText: {},
   donorCardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eligRow: { flexDirection: 'row', gap: Spacing.base, alignItems: 'center' },
   eligText: { flex: 1, gap: 4, alignItems: 'flex-start' },
@@ -270,11 +268,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: -Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
-  achWrap: { width: '47.5%', flexGrow: 1 },
-  achCard: { gap: 6, minHeight: 132 },
+  achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, alignItems: 'stretch' },
+  achWrap: { width: '47.5%', flexGrow: 1, alignSelf: 'stretch' },
+  achCard: { gap: 6, minHeight: 132, flex: 1 },
   achIcon: {
     width: 40,
     height: 40,

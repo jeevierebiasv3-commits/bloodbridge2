@@ -29,7 +29,6 @@ export interface UserProfile {
   city: string;
   region?: string;
   avatarColor?: string;
-  isDonor: boolean;
   health?: HealthInfo;
   lastDonationDate?: string; // ISO
   createdAt: string; // ISO
@@ -44,8 +43,20 @@ export interface Donation {
   type: 'whole' | 'plasma' | 'platelets' | 'power_red';
 }
 
+export interface Responder {
+  id: string;
+  fullName: string;
+  bloodType: BloodType;
+  city: string;
+  distanceKm: number;
+  avatarColor?: string;
+  respondedAt: string; // ISO
+  status: 'offered' | 'confirmed';
+}
+
 export interface EmergencyRequest {
   id: string;
+  ownerId?: string; // profile id of the requester who posted it; undefined for seeded/others' requests
   patientInitials: string;
   bloodType: BloodType;
   unitsNeeded: number;
@@ -61,6 +72,7 @@ export interface EmergencyRequest {
   note?: string;
   status: RequestStatus;
   respondersCount: number;
+  responders?: Responder[];
 }
 
 export interface DonationCenter {

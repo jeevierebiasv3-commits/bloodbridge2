@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import {
+  Avatar,
   Badge,
   BloodTypeGlyph,
   Button,
@@ -27,20 +28,37 @@ import {
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { canDonateTo, donorsFor } from '@/lib/blood';
-import { distanceLabel, longDate, relativeTime, timeOfDay } from '@/lib/format';
+import { distanceLabel, firstName, longDate, relativeTime, timeOfDay } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 import { useAppStore } from '@/store/app-store';
+import { Responder } from '@/types/domain';
 
 export default function RequestDetailScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { requests, profile, respondToRequest, respondedRequestIds } = useAppStore();
+  const {
+    requests,
+    profile,
+    respondToRequest,
+    respondedRequestIds,
+    confirmResponder,
+    cancelRequest,
+    markRequestFulfilled,
+  } = useAppStore();
 
   const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [fulfilling, setFulfilling] = useState(false);
+  // The responder awaiting a confirm decision in the sheet, if any.
+  const [pendingResponder, setPendingResponder] = useState<Responder | null>(null);
+  // Shows the earned celebration sheet when the last needed unit is confirmed.
+  const [celebrating, setCelebrating] = useState(false);
 
   const request = useMemo(() => requests.find((r) => r.id === id), [requests, id]);
   const responded = request ? respondedRequestIds.includes(request.id) : false;
+  const isOwner = !!(request && profile && request.ownerId === profile.id);
   const compatible = request && profile ? canDonateTo(profile.bloodType, request.bloodType) : false;
 
   if (!request) {
@@ -68,6 +86,46 @@ export default function RequestDetailScreen() {
     void Linking.openURL(`tel:${request.contactPhone}`);
   };
 
+  const onMarkFulfilled = () => {
+    void markRequestFulfilled(request.id);
+    setFulfilling(false);
+    toast.show('Request marked fulfilled. Thank you.', 'success');
+  };
+
+  // Responders who offered but haven't been confirmed — used to warn the owner
+  // when they mark fulfilled while offers are still pending.
+  const pendingOffers = (request.responders ?? []).filter((r) => r.status === 'offered').length;
+
+  const onCancel = () => {
+    void cancelRequest(request.id);
+    setCancelling(false);
+    toast.show('Request cancelled.', 'success');
+  };
+
+  const onConfirmResponder = () => {
+    if (!pendingResponder) return;
+    const responder = pendingResponder;
+    // Would this confirmation complete the request? (store recomputes the same way)
+    const alreadyConfirmed = (request.responders ?? []).filter(
+      (r) => r.status === 'confirmed',
+    ).length;
+    const willFulfill = alreadyConfirmed + 1 >= request.unitsNeeded;
+
+    void confirmResponder(request.id, responder.id);
+    setPendingResponder(null);
+
+    if (willFulfill) {
+      // The payoff moment — the request is fully met.
+      haptics.success();
+      setCelebrating(true);
+    } else {
+      haptics.medium();
+      toast.show(`${firstName(responder.fullName)} is on the way. One step closer.`, 'success');
+    }
+  };
+
+  const isClosed = request.status === 'fulfilled' || request.status === 'expired';
+
   return (
     <>
       <ScrollView
@@ -93,7 +151,14 @@ export default function RequestDetailScreen() {
               <ThemedText type="subhead" color="textSecondary">
                 {request.unitsNeeded} unit{request.unitsNeeded > 1 ? 's' : ''} · patient {request.patientInitials}
               </ThemedText>
-              {compatible ? (
+              {isOwner ? (
+                <View style={styles.compatRow}>
+                  <Ionicons name="person-circle" size={16} color={theme.brand} />
+                  <ThemedText type="footnote" color="brand">
+                    Your request
+                  </ThemedText>
+                </View>
+              ) : compatible ? (
                 <View style={styles.compatRow}>
                   <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                   <ThemedText type="footnote" color="success">
@@ -131,6 +196,66 @@ export default function RequestDetailScreen() {
           </Card>
         </FadeIn>
 
+        {/* Responders — owner only. Review and confirm donors who offered. */}
+        {isOwner ? (
+          <FadeIn delay={90}>
+            <View style={styles.sectionHead}>
+              <ThemedText type="headline">Responders</ThemedText>
+              {request.responders && request.responders.length > 0 ? (
+                <ThemedText type="footnote" color="textSecondary">
+                  Confirm the donors you want to proceed with
+                </ThemedText>
+              ) : null}
+            </View>
+            {request.responders && request.responders.length > 0 ? (
+              <Card padding="base">
+                {request.responders.map((r, i) => (
+                  <View
+                    key={r.id}
+                    style={[
+                      styles.responderRow,
+                      i < request.responders!.length - 1 && {
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: theme.border,
+                      },
+                    ]}>
+                    <Avatar name={r.fullName} color={r.avatarColor} size={40} />
+                    <View style={styles.responderInfo}>
+                      <ThemedText type="bodyStrong" numberOfLines={1}>
+                        {r.fullName}
+                      </ThemedText>
+                      <ThemedText type="caption" color="textSecondary" numberOfLines={1}>
+                        {r.bloodType} · {distanceLabel(r.distanceKm)} · {relativeTime(r.respondedAt)}
+                      </ThemedText>
+                    </View>
+                    {r.status === 'confirmed' ? (
+                      <Badge label="Confirmed" tone="success" dot />
+                    ) : isClosed ? (
+                      <Badge label="Offered" tone="neutral" />
+                    ) : (
+                      <Button
+                        label="Confirm"
+                        size="sm"
+                        icon="checkmark"
+                        onPress={() => setPendingResponder(r)}
+                      />
+                    )}
+                  </View>
+                ))}
+              </Card>
+            ) : (
+              <Card variant="tinted" tint={theme.surfaceSunken}>
+                <View style={styles.emptyResponders}>
+                  <Ionicons name="people-outline" size={22} color={theme.textTertiary} />
+                  <ThemedText type="footnote" color="textSecondary" style={styles.emptyRespondersText}>
+                    No responders yet. Donors will appear here as they offer to help.
+                  </ThemedText>
+                </View>
+              </Card>
+            )}
+          </FadeIn>
+        ) : null}
+
         {/* Details */}
         <FadeIn delay={120}>
           <Card padding="base">
@@ -160,16 +285,38 @@ export default function RequestDetailScreen() {
           styles.actionBar,
           { backgroundColor: theme.surfaceElevated, borderColor: theme.border, paddingBottom: insets.bottom || Spacing.base },
         ]}>
-        <Button label="Call" variant="secondary" icon="call" onPress={call} />
-        <View style={styles.respondBtn}>
-          <Button
-            label={responded ? 'You responded' : compatible ? 'Respond to request' : 'Respond anyway'}
-            fullWidth
-            disabled={responded}
-            icon={responded ? 'checkmark' : 'hand-left'}
-            onPress={() => setConfirming(true)}
-          />
-        </View>
+        {isOwner ? (
+          isClosed ? (
+            <View style={styles.respondBtn}>
+              <Button
+                label={request.status === 'fulfilled' ? 'Fulfilled' : 'Cancelled'}
+                fullWidth
+                disabled
+                icon={request.status === 'fulfilled' ? 'checkmark' : 'close'}
+              />
+            </View>
+          ) : (
+            <>
+              <Button label="Cancel request" variant="secondary" icon="close" onPress={() => setCancelling(true)} />
+              <View style={styles.respondBtn}>
+                <Button label="Mark fulfilled" fullWidth icon="checkmark" onPress={() => setFulfilling(true)} />
+              </View>
+            </>
+          )
+        ) : (
+          <>
+            <Button label="Call" variant="secondary" icon="call" onPress={call} />
+            <View style={styles.respondBtn}>
+              <Button
+                label={responded ? 'You responded' : compatible ? 'Respond to request' : 'Respond anyway'}
+                fullWidth
+                disabled={responded || isClosed}
+                icon={responded ? 'checkmark' : 'hand-left'}
+                onPress={() => setConfirming(true)}
+              />
+            </View>
+          </>
+        )}
       </View>
 
       <ConfirmSheet
@@ -180,6 +327,51 @@ export default function RequestDetailScreen() {
         cancelLabel="Not now"
         onConfirm={onRespond}
         onCancel={() => setConfirming(false)}
+      />
+
+      <ConfirmSheet
+        visible={cancelling}
+        title="Cancel this request?"
+        message="Donors will no longer see it in the emergency feed. This can't be undone."
+        confirmLabel="Cancel request"
+        cancelLabel="Keep it active"
+        destructive
+        onConfirm={onCancel}
+        onCancel={() => setCancelling(false)}
+      />
+
+      <ConfirmSheet
+        visible={!!pendingResponder}
+        title={pendingResponder ? `Confirm ${firstName(pendingResponder.fullName)} as a donor?` : ''}
+        message="They'll be notified that you've accepted their offer to donate."
+        confirmLabel="Confirm donor"
+        cancelLabel="Not yet"
+        onConfirm={onConfirmResponder}
+        onCancel={() => setPendingResponder(null)}
+      />
+
+      <ConfirmSheet
+        visible={celebrating}
+        title="Your request is fulfilled"
+        message="Every unit you need has a confirmed donor on the way. Thank you for trusting Vesta."
+        confirmLabel="Done"
+        cancelLabel="Close"
+        onConfirm={() => setCelebrating(false)}
+        onCancel={() => setCelebrating(false)}
+      />
+
+      <ConfirmSheet
+        visible={fulfilling}
+        title="Mark this request fulfilled?"
+        message={
+          pendingOffers > 0
+            ? `You still have ${pendingOffers} donor${pendingOffers === 1 ? '' : 's'} waiting to be confirmed. Marking this fulfilled closes the request and leaves those offers unconfirmed.`
+            : 'This closes the request and removes it from the emergency feed.'
+        }
+        confirmLabel="Mark fulfilled"
+        cancelLabel="Keep it open"
+        onConfirm={onMarkFulfilled}
+        onCancel={() => setFulfilling(false)}
       />
     </>
   );
@@ -222,6 +414,11 @@ const styles = StyleSheet.create({
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4 },
   responders: { marginTop: Spacing.sm },
+  sectionHead: { gap: 2, marginBottom: Spacing.sm },
+  responderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md },
+  responderInfo: { flex: 1, gap: 2 },
+  emptyResponders: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  emptyRespondersText: { flex: 1 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md },
   detailIcon: { width: 32, height: 32, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
   detailLabel: { width: 88 },

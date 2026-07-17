@@ -6,7 +6,6 @@ export { Card } from './card';
 export { ConfirmSheet } from './confirm-sheet';
 export { EmptyState } from './empty-state';
 export { FadeIn } from './fade-in';
-export { Gradient } from './gradient';
 export { Input } from './input';
 export { PressableScale } from './pressable-scale';
 export { ProgressRing } from './progress-ring';

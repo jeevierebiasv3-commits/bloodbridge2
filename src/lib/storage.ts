@@ -35,3 +35,8 @@ export const StorageKeys = {
   donations: 'donations',
   respondedRequests: 'respondedRequests',
 } as const;
+
+/** Wipe all Vesta-namespaced storage back to first-run. */
+export async function clearAll(): Promise<void> {
+  await Promise.all(Object.values(StorageKeys).map((key) => removeItem(key)));
+}

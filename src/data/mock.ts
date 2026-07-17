@@ -14,7 +14,76 @@ const inHours = (h: number) => new Date(now + h * 3_600_000).toISOString();
 const daysAgo = (d: number) => new Date(now - d * 86_400_000).toISOString();
 const inDays = (d: number) => new Date(now + d * 86_400_000).toISOString();
 
+/**
+ * Sentinel ownerId for seeded requests that should belong to the current user.
+ * Profile ids are generated at runtime (`user-<email>`), so we can't hardcode a
+ * real id here — the store rewrites this sentinel to the live profile id on
+ * sign-in/hydration via {@link personalizeRequests}.
+ */
+export const SELF_OWNER_ID = '__self__';
+
+/** Rewrite any seeded self-owned requests to the signed-in profile's id. Idempotent. */
+export function personalizeRequests(
+  requests: EmergencyRequest[],
+  profileId: string,
+): EmergencyRequest[] {
+  return requests.map((r) =>
+    r.ownerId === SELF_OWNER_ID ? { ...r, ownerId: profileId } : r,
+  );
+}
+
 export const mockRequests: EmergencyRequest[] = [
+  {
+    id: 'req-mine',
+    ownerId: SELF_OWNER_ID,
+    patientInitials: 'K.L.',
+    bloodType: 'A+',
+    unitsNeeded: 2,
+    unitsFulfilled: 0,
+    urgency: 'urgent',
+    hospital: 'Riverside General',
+    city: 'Riverside',
+    distanceKm: 5.8,
+    neededBy: inHours(20),
+    postedAt: hours(2),
+    contactName: 'You',
+    contactPhone: '+1 555 0199',
+    note: 'Posted on behalf of a family member ahead of surgery.',
+    status: 'open',
+    respondersCount: 3,
+    responders: [
+      {
+        id: 'resp-1',
+        fullName: 'Daniel Cho',
+        bloodType: 'A+',
+        city: 'Riverside',
+        distanceKm: 3.2,
+        avatarColor: '#3B82F6',
+        respondedAt: hours(1),
+        status: 'offered',
+      },
+      {
+        id: 'resp-2',
+        fullName: 'Amara Okafor',
+        bloodType: 'A+',
+        city: 'Downtown',
+        distanceKm: 6.5,
+        avatarColor: '#EC4899',
+        respondedAt: hours(2),
+        status: 'offered',
+      },
+      {
+        id: 'resp-3',
+        fullName: 'Liam Nguyen',
+        bloodType: 'A-',
+        city: 'Midtown',
+        distanceKm: 4.1,
+        avatarColor: '#10B981',
+        respondedAt: hours(4),
+        status: 'offered',
+      },
+    ],
+  },
   {
     id: 'req-1',
     patientInitials: 'S.M.',

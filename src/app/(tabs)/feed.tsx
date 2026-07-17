@@ -43,7 +43,8 @@ export default function FeedScreen() {
   const visible = useMemo(() => {
     const active = requests.filter((r) => r.status !== 'expired');
     const filtered = active.filter((r) => {
-      if (filter === 'compatible') return bloodType ? canDonateTo(bloodType, r.bloodType) : true;
+      if (filter === 'compatible')
+        return r.ownerId !== profile?.id && (bloodType ? canDonateTo(bloodType, r.bloodType) : true);
       if (filter === 'critical') return r.urgency === 'critical' || r.urgency === 'urgent';
       return true;
     });
@@ -52,14 +53,16 @@ export default function FeedScreen() {
       if (u !== 0) return u;
       return new Date(a.neededBy).getTime() - new Date(b.neededBy).getTime();
     });
-  }, [requests, filter, bloodType]);
+  }, [requests, filter, bloodType, profile?.id]);
 
   const compatibleCount = useMemo(
     () =>
       bloodType
-        ? requests.filter((r) => r.status !== 'expired' && canDonateTo(bloodType, r.bloodType)).length
+        ? requests.filter(
+            (r) => r.status !== 'expired' && r.ownerId !== profile?.id && canDonateTo(bloodType, r.bloodType),
+          ).length
         : 0,
-    [requests, bloodType],
+    [requests, bloodType, profile?.id],
   );
 
   const onRefresh = () => {
@@ -120,6 +123,7 @@ export default function FeedScreen() {
               <RequestCard
                 request={req}
                 viewerType={bloodType}
+                viewerId={profile?.id}
                 onPress={() => router.push({ pathname: '/request/[id]', params: { id: req.id } })}
               />
             </FadeIn>

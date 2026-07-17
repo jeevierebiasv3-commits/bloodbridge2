@@ -1,6 +1,6 @@
 # Vesta — Design System
 
-> **Single source of truth** for all UI/UX. Inspired by the **Linear Design System**: minimal, elegant, fast, distraction-free, meticulously crafted. Every screen emphasizes clean layouts, consistent spacing, refined typography, subtle gradients, soft shadows, rounded corners, tasteful glassmorphism, and fluid micro-interactions.
+> **Single source of truth** for all UI/UX. Inspired by the **Linear Design System**: minimal, elegant, fast, distraction-free, meticulously crafted. Every screen emphasizes clean layouts, consistent spacing, native SF typography, solid color surfaces, soft shadows, rounded corners, tasteful glassmorphism, and fluid micro-interactions.
 >
 > **Product:** Vesta — a blood donation app that connects donors, recipients, hospitals, and blood banks to save lives.
 
@@ -24,9 +24,10 @@ Colors are defined as semantic tokens in `src/constants/theme.ts` (`Colors.light
 ### Brand
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `brand` | `#E5484D` | `#F16A6F` | Primary accent, brand mark |
-| `brandStrong` | `#DC3D43` | `#E5484D` | Pressed primary |
+| `brand` | `#D9474D` | `#FF777B` | Primary accent, brand mark |
+| `brandStrong` | `#C93A42` | `#F05C64` | Pressed primary |
 | `brandSubtle` | `#FEEBEC` | `#2A1416` | Tinted brand backgrounds |
+| `brandDeep` | `#151A36` | `#0E1125` | Solid brand panels, donor card |
 | `onBrand` | `#FFFFFF` | `#FFFFFF` | Text/icons on brand |
 
 ### Surfaces (elevation ladder)
@@ -40,16 +41,16 @@ Colors are defined as semantic tokens in `src/constants/theme.ts` (`Colors.light
 ### Text
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `text` | `#16161A` | `#F5F5F7` | Primary text |
-| `textSecondary` | `#60646C` | `#9A9AA5` | Secondary text |
-| `textTertiary` | `#8B8D98` | `#6C6C78` | Hints, captions, disabled |
+| `text` | `#16192D` | `#F7F7FB` | Primary text |
+| `textSecondary` | `#596078` | `#A5A8BC` | Secondary text |
+| `textTertiary` | `#7B8299` | `#777B92` | Hints, captions, disabled |
 | `onColor` | `#FFFFFF` | `#FFFFFF` | Text on colored fills |
 
 ### Lines
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `border` | `#EBEBEF` | `#26262B` | Hairlines, dividers |
-| `borderStrong` | `#DCDCE1` | `#34343B` | Focus outlines, emphasis |
+| `border` | `#E8E9F0` | `#282B3D` | Hairlines, dividers |
+| `borderStrong` | `#D5D8E4` | `#3A3E54` | Focus outlines, emphasis |
 
 ### Semantic status
 | Token | Light | Dark | Use |
@@ -62,16 +63,16 @@ Colors are defined as semantic tokens in `src/constants/theme.ts` (`Colors.light
 ### Urgency scale (emergency requests)
 `critical` → `danger` · `urgent` → `warning` · `moderate` → `info` · `routine` → `textSecondary`
 
-### Gradients
-- **Brand glow:** `#F16A6F → #E5484D → #C42B32` (135°) — hero cards, donor card.
-- **Surface sheen:** transparent → 6% white overlay, top-to-bottom on elevated cards (dark mode only).
-Use `expo-linear-gradient`. Gradients are subtle; never rainbow.
+### Color surfaces
+- Use `brandDeep` for solid hero panels, donor cards, onboarding, and featured content.
+- Use `brandSubtle` and semantic subtle tokens for quiet tinted states.
+- Do not use gradient colors. Depth comes from tonal contrast, elevation, and purposeful overlays.
 
 ---
 
 ## 3. Typography
 
-System font stack (SF Pro / Roboto). Web falls back to `--font-display` (Inter/Spline Sans). Defined via `ThemedText` `type` variants.
+System font stack: San Francisco / SF Pro on iOS, the platform sans-serif equivalent elsewhere. Web falls back to an Apple system font stack. Defined via `ThemedText` `type` variants.
 
 | Variant | Size / Line | Weight | Use |
 |---|---|---|---|

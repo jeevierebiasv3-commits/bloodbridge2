@@ -37,7 +37,6 @@ export default function ProfileSetupScreen() {
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [weight, setWeight] = useState('');
-  const [isDonor, setIsDonor] = useState(true);
   const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
 
   const canAdvance = useMemo(() => {
@@ -58,7 +57,6 @@ export default function ProfileSetupScreen() {
       gender,
       city: city.trim(),
       avatarColor,
-      isDonor,
       health: weight ? { weightKg: Number(weight) || undefined } : undefined,
       createdAt: new Date().toISOString(),
     };
@@ -256,28 +254,6 @@ export default function ProfileSetupScreen() {
                   keyboardType="number-pad"
                   hint="Donors usually weigh at least 50 kg."
                 />
-                <PressableScale
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: isDonor }}
-                  onPress={() => {
-                    haptics.selection();
-                    setIsDonor((v) => !v);
-                  }}
-                  style={[styles.donorToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <View style={styles.flex}>
-                    <ThemedText type="bodyStrong">Register as a donor</ThemedText>
-                    <ThemedText type="footnote" color="textSecondary">
-                      Appear in donor search and receive emergency matches.
-                    </ThemedText>
-                  </View>
-                  <View
-                    style={[
-                      styles.switch,
-                      { backgroundColor: isDonor ? theme.brand : theme.borderStrong },
-                    ]}>
-                    <View style={[styles.knob, { alignSelf: isDonor ? 'flex-end' : 'flex-start' }]} />
-                  </View>
-                </PressableScale>
               </View>
             </Animated.View>
           )}
@@ -341,16 +317,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexGrow: 1,
   },
-  donorToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.base,
-    padding: Spacing.base,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  switch: { width: 48, height: 28, borderRadius: Radius.full, padding: 3, justifyContent: 'center' },
-  knob: { width: 22, height: 22, borderRadius: Radius.full, backgroundColor: '#fff' },
   footer: {
     padding: Spacing.base,
     borderTopWidth: StyleSheet.hairlineWidth,

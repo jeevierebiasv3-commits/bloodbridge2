@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { type ThemeColor } from '@/constants/theme';
+import { Fonts, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type TextVariant =
@@ -23,7 +23,7 @@ export type ThemedTextProps = TextProps & {
 
 export function ThemedText({ style, type = 'body', color, ...rest }: ThemedTextProps) {
   const theme = useTheme();
-  return <Text style={[{ color: theme[color ?? 'text'] }, styles[type], style]} {...rest} />;
+  return <Text style={[{ color: theme[color ?? 'text'], fontFamily: Fonts.sans }, styles[type], style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
@@ -37,5 +37,5 @@ const styles = StyleSheet.create({
   subhead: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
   footnote: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '600', letterSpacing: 0.4 },
-  mono: { fontSize: 13, lineHeight: 18, fontWeight: '500', fontFamily: 'monospace' },
+  mono: { fontSize: 13, lineHeight: 18, fontWeight: '500', fontFamily: Fonts.mono },
 });

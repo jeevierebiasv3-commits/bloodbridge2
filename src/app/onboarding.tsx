@@ -17,9 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
-import { Gradient } from '@/components/ui/gradient';
-import { BrandGradient, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
+import { useTheme } from '@/hooks/use-theme';
 import { useAppStore } from '@/store/app-store';
 
 type Slide = {
@@ -48,6 +48,7 @@ const SLIDES: Slide[] = [
 
 export default function Onboarding() {
   const router = useRouter();
+  const theme = useTheme();
   const { completeOnboarding } = useAppStore();
   const [index, setIndex] = useState(0);
   const scrollX = useSharedValue(0);
@@ -82,7 +83,7 @@ export default function Onboarding() {
 
   return (
     <View style={styles.container}>
-      <Gradient colors={BrandGradient} style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.brandDeep }]} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.top}>
           <ThemedText type="headline" style={styles.brand}>
