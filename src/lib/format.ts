@@ -21,6 +21,14 @@ export function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+export function monthAbbrev(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short' });
+}
+
+export function dayOfMonth(iso: string): number {
+  return new Date(iso).getDate();
+}
+
 export function longDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     weekday: 'short',

@@ -22,18 +22,20 @@ import {
   StatTile,
 } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { computeAchievements } from '@/data/achievements';
+import { useDonations, useProfile, useRequests } from '@/hooks/api';
 import { computeEligibility } from '@/lib/blood';
 import { longDate, shortDate } from '@/lib/format';
-import { mockAchievements } from '@/data/mock';
-import { useAppStore } from '@/store/app-store';
 
 export default function DonorScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, donations } = useAppStore();
+  const { data: profile } = useProfile();
+  const { data: donations = [] } = useDonations();
+  const { data: requests = [] } = useRequests();
 
   const eligibility = useMemo(
     () => computeEligibility(profile?.lastDonationDate ?? donations[0]?.date),
@@ -42,6 +44,14 @@ export default function DonorScreen() {
 
   const totalUnits = donations.reduce((sum, d) => sum + d.units, 0);
   const livesImpacted = totalUnits * 3;
+  const achievements = useMemo(
+    () =>
+      computeAchievements({
+        donationCount: donations.length,
+        hasResponded: requests.some((r) => r.myResponse),
+      }),
+    [donations.length, requests],
+  );
 
   if (!profile) return null;
 
@@ -50,7 +60,7 @@ export default function DonorScreen() {
       style={{ flex: 1 }}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + 120 },
+        { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + TabBarClearance },
       ]}
       showsVerticalScrollIndicator={false}>
       <ScreenHeader
@@ -73,7 +83,7 @@ export default function DonorScreen() {
             <View style={styles.donorCardTop}>
               <View>
                 <ThemedText type="footnote" style={styles.cardLabel}>
-                  VESTA DONOR
+                  BLOOD BRIDGE DONOR
                 </ThemedText>
                 <ThemedText type="title2" style={styles.cardName}>
                   {profile.fullName}
@@ -151,11 +161,11 @@ export default function DonorScreen() {
         <View style={styles.sectionHead}>
           <ThemedText type="headline">Achievements</ThemedText>
           <ThemedText type="footnote" color="textTertiary">
-            {mockAchievements.filter((a) => a.unlocked).length}/{mockAchievements.length}
+            {achievements.filter((a) => a.unlocked).length}/{achievements.length}
           </ThemedText>
         </View>
         <View style={styles.achGrid}>
-          {mockAchievements.map((a) => (
+          {achievements.map((a) => (
             <View key={a.id} style={styles.achWrap}>
               <Card padding="base" style={[styles.achCard, { opacity: a.unlocked ? 1 : 0.55 }]}>
                 <View

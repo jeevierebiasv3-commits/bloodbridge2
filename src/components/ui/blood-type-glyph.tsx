@@ -27,7 +27,7 @@ export function BloodTypeGlyph({
 
   const bg = onDark ? 'rgba(255,255,255,0.16)' : filled ? theme.brand : theme.brandSubtle;
   const border = onDark ? 'rgba(255,255,255,0.6)' : theme.brand;
-  const fg = onDark ? '#FFFFFF' : filled ? theme.onColor : theme.brand;
+  const fg = onDark ? '#FFFFFF' : filled ? theme.onBrand : theme.brand;
 
   return (
     <View

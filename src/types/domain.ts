@@ -1,10 +1,18 @@
-/** Core domain types for Vesta. */
+/** Core domain types for Blood Bridge. */
 
 export type BloodType = 'O-' | 'O+' | 'A-' | 'A+' | 'B-' | 'B+' | 'AB-' | 'AB+';
 
 export const BLOOD_TYPES: BloodType[] = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
 export type Urgency = 'critical' | 'urgent' | 'moderate' | 'routine';
+
+/** Canonical urgency ordering for sorting — lower ranks first (most urgent). */
+export const URGENCY_RANK: Record<Urgency, number> = {
+  critical: 0,
+  urgent: 1,
+  moderate: 2,
+  routine: 3,
+};
 
 export type RequestStatus = 'open' | 'partial' | 'fulfilled' | 'expired';
 

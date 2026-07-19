@@ -6,7 +6,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,11 +26,18 @@ import {
   useToast,
 } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import {
+  useCancelRequest,
+  useConfirmResponder,
+  useFulfillRequest,
+  useProfile,
+  useRequest,
+  useRespond,
+} from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
 import { canDonateTo, donorsFor } from '@/lib/blood';
 import { distanceLabel, firstName, longDate, relativeTime, timeOfDay } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
-import { useAppStore } from '@/store/app-store';
 import { Responder } from '@/types/domain';
 
 export default function RequestDetailScreen() {
@@ -38,15 +45,14 @@ export default function RequestDetailScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const {
-    requests,
-    profile,
-    respondToRequest,
-    respondedRequestIds,
-    confirmResponder,
-    cancelRequest,
-    markRequestFulfilled,
-  } = useAppStore();
+  const { data: profile } = useProfile();
+  const requestQuery = useRequest(id);
+  const request = requestQuery.data;
+
+  const respond = useRespond();
+  const confirmResponder = useConfirmResponder(id);
+  const cancelRequest = useCancelRequest(id);
+  const fulfillRequest = useFulfillRequest(id);
 
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -56,10 +62,17 @@ export default function RequestDetailScreen() {
   // Shows the earned celebration sheet when the last needed unit is confirmed.
   const [celebrating, setCelebrating] = useState(false);
 
-  const request = useMemo(() => requests.find((r) => r.id === id), [requests, id]);
-  const responded = request ? respondedRequestIds.includes(request.id) : false;
+  const responded = request?.myResponse != null;
   const isOwner = !!(request && profile && request.ownerId === profile.id);
   const compatible = request && profile ? canDonateTo(profile.bloodType, request.bloodType) : false;
+
+  if (requestQuery.isLoading) {
+    return (
+      <View style={[styles.flex, { paddingTop: insets.top + Spacing.sm }]}>
+        <ScreenHeader title="Request" showBack />
+      </View>
+    );
+  }
 
   if (!request) {
     return (
@@ -77,7 +90,7 @@ export default function RequestDetailScreen() {
   const fulfilled = request.unitsFulfilled / request.unitsNeeded;
 
   const onRespond = () => {
-    void respondToRequest(request.id);
+    respond.mutate(request.id);
     setConfirming(false);
     toast.show('Thank you. The hospital has been notified.', 'success');
   };
@@ -87,7 +100,7 @@ export default function RequestDetailScreen() {
   };
 
   const onMarkFulfilled = () => {
-    void markRequestFulfilled(request.id);
+    fulfillRequest.mutate();
     setFulfilling(false);
     toast.show('Request marked fulfilled. Thank you.', 'success');
   };
@@ -97,30 +110,29 @@ export default function RequestDetailScreen() {
   const pendingOffers = (request.responders ?? []).filter((r) => r.status === 'offered').length;
 
   const onCancel = () => {
-    void cancelRequest(request.id);
+    cancelRequest.mutate();
     setCancelling(false);
     toast.show('Request cancelled.', 'success');
   };
 
-  const onConfirmResponder = () => {
+  const onConfirmResponder = async () => {
     if (!pendingResponder) return;
     const responder = pendingResponder;
-    // Would this confirmation complete the request? (store recomputes the same way)
-    const alreadyConfirmed = (request.responders ?? []).filter(
-      (r) => r.status === 'confirmed',
-    ).length;
-    const willFulfill = alreadyConfirmed + 1 >= request.unitsNeeded;
-
-    void confirmResponder(request.id, responder.id);
     setPendingResponder(null);
-
-    if (willFulfill) {
-      // The payoff moment — the request is fully met.
-      haptics.success();
-      setCelebrating(true);
-    } else {
-      haptics.medium();
-      toast.show(`${firstName(responder.fullName)} is on the way. One step closer.`, 'success');
+    try {
+      // The server recomputes fulfillment and returns the updated request.
+      const updated = await confirmResponder.mutateAsync(responder.id);
+      if (updated.status === 'fulfilled') {
+        // The payoff moment — the request is fully met.
+        haptics.success();
+        setCelebrating(true);
+      } else {
+        haptics.medium();
+        toast.show(`${firstName(responder.fullName)} is on the way. One step closer.`, 'success');
+      }
+    } catch {
+      haptics.error();
+      toast.show('Could not confirm this donor. Please try again.', 'danger');
     }
   };
 
@@ -353,7 +365,7 @@ export default function RequestDetailScreen() {
       <ConfirmSheet
         visible={celebrating}
         title="Your request is fulfilled"
-        message="Every unit you need has a confirmed donor on the way. Thank you for trusting Vesta."
+        message="Every unit you need has a confirmed donor on the way. Thank you for trusting Blood Bridge."
         confirmLabel="Done"
         cancelLabel="Close"
         onConfirm={() => setCelebrating(false)}
@@ -397,7 +409,7 @@ function DetailRow({
       <ThemedText type="subhead" color="textSecondary" style={styles.detailLabel}>
         {label}
       </ThemedText>
-      <ThemedText type="subhead" style={styles.detailValue} numberOfLines={1}>
+      <ThemedText type="subhead" style={styles.detailValue} numberOfLines={2}>
         {value}
       </ThemedText>
     </View>

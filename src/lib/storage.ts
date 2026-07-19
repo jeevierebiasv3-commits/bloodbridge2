@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const PREFIX = 'vesta:';
+const PREFIX = 'bloodbridge:';
 
 export async function getItem<T>(key: string): Promise<T | null> {
   try {
@@ -19,24 +19,10 @@ export async function setItem<T>(key: string, value: T): Promise<void> {
   }
 }
 
-export async function removeItem(key: string): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(PREFIX + key);
-  } catch {
-    // ignore
-  }
-}
-
+/**
+ * Only the first-run onboarding flag lives on the device now. Auth sessions are
+ * handled by Better Auth (SecureStore / cookies); all other data is server-side.
+ */
 export const StorageKeys = {
   onboarded: 'onboarded',
-  profile: 'profile',
-  requests: 'requests',
-  appointments: 'appointments',
-  donations: 'donations',
-  respondedRequests: 'respondedRequests',
 } as const;
-
-/** Wipe all Vesta-namespaced storage back to first-run. */
-export async function clearAll(): Promise<void> {
-  await Promise.all(Object.values(StorageKeys).map((key) => removeItem(key)));
-}

@@ -18,23 +18,17 @@ import {
   SkeletonCard,
 } from '@/components/ui';
 import { BottomTabInset, Spacing } from '@/constants/theme';
+import { useProfile, useRequests } from '@/hooks/api';
 import { canDonateTo } from '@/lib/blood';
-import { useAppStore } from '@/store/app-store';
-import { Urgency } from '@/types/domain';
+import { URGENCY_RANK } from '@/types/domain';
 
 type Filter = 'all' | 'compatible' | 'critical';
-
-const URGENCY_RANK: Record<Urgency, number> = {
-  critical: 0,
-  urgent: 1,
-  moderate: 2,
-  routine: 3,
-};
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { requests, profile } = useAppStore();
+  const { data: requests = [], refetch, isLoading } = useRequests();
+  const { data: profile } = useProfile();
   const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -65,9 +59,10 @@ export default function FeedScreen() {
     [requests, bloodType, profile?.id],
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 900);
+    await refetch();
+    setRefreshing(false);
   };
 
   return (
@@ -101,8 +96,9 @@ export default function FeedScreen() {
         />
       </View>
 
-      {refreshing ? (
+      {isLoading || refreshing ? (
         <View style={styles.list}>
+          <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
         </View>

@@ -3,10 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Radius, Spacing, type ThemeColor } from '@/constants/theme';
+import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse';
 type Size = 'sm' | 'md' | 'lg';
 
 export type ButtonProps = {
@@ -37,19 +37,29 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || loading;
+  // Loading keeps the variant's fill (with a spinner); only a truly disabled
+  // button drops to the quiet sunken treatment.
+  const showDisabled = disabled && !loading;
 
   const bg: Record<Variant, string> = {
     primary: theme.brand,
     secondary: theme.surface,
     ghost: 'transparent',
     danger: theme.danger,
+    // Fixed white-on-ink pairing for placement on brandDeep panels — identical
+    // in both themes so deep-navy heroes always get a crisp CTA.
+    inverse: '#FFFFFF',
   };
-  const fg: Record<Variant, ThemeColor> = {
-    primary: 'onColor',
-    secondary: 'text',
-    ghost: 'brand',
-    danger: 'onColor',
+  const fg: Record<Variant, string> = {
+    primary: theme.onBrand,
+    secondary: theme.text,
+    ghost: theme.brand,
+    danger: theme.onBrand,
+    inverse: Colors.light.brandDeep,
   };
+
+  const background = showDisabled ? theme.surfaceSunken : bg[variant];
+  const foreground = showDisabled ? theme.textTertiary : fg[variant];
 
   return (
     <PressableScale
@@ -64,21 +74,20 @@ export function Button({
         {
           height: HEIGHT[size],
           paddingHorizontal: PADDING[size],
-          backgroundColor: bg[variant],
-          borderWidth: variant === 'secondary' ? StyleSheet.hairlineWidth : 0,
+          backgroundColor: background,
+          borderWidth: variant === 'secondary' && !showDisabled ? StyleSheet.hairlineWidth : 0,
           borderColor: theme.border,
-          opacity: isDisabled ? 0.5 : 1,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         style as ViewStyle,
       ]}>
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator color={theme[fg[variant]]} size="small" />
+          <ActivityIndicator color={foreground} size="small" />
         ) : (
           <>
-            {icon ? <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={theme[fg[variant]]} /> : null}
-            <ThemedText type={size === 'sm' ? 'callout' : 'bodyStrong'} color={fg[variant]}>
+            {icon ? <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={foreground} /> : null}
+            <ThemedText type={size === 'sm' ? 'callout' : 'bodyStrong'} style={{ color: foreground }}>
               {label}
             </ThemedText>
           </>

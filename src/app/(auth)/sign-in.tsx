@@ -1,6 +1,6 @@
 /**
- * Sign in / create account. Mock auth — any valid-looking email continues the
- * flow. New users route to profile setup; returning users land on the app.
+ * Sign in / create account against Better Auth (email + password). New accounts
+ * route through the gate to profile-setup; returning users land on the app.
  * See design.md §Auth, §5 Components (Input, Button).
  */
 
@@ -12,50 +12,71 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, FadeIn, Input } from '@/components/ui';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { authClient } from '@/lib/auth-client';
 import { haptics } from '@/lib/haptics';
-import { useAppStore } from '@/store/app-store';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type Mode = 'signin' | 'signup';
 
 export default function SignInScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, signIn } = useAppStore();
 
-  const [email, setEmail] = useState(profile?.email ?? '');
+  const [mode, setMode] = useState<Mode>('signin');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onContinue = async () => {
+  const isSignup = mode === 'signup';
+
+  const onSubmit = async () => {
+    if (isSignup && name.trim().length < 2) {
+      setError('Enter your name');
+      haptics.error();
+      return;
+    }
     if (!EMAIL_RE.test(email.trim())) {
       setError('Enter a valid email address');
       haptics.error();
       return;
     }
-    if (password.length < 4) {
-      setError('Password must be at least 4 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       haptics.error();
       return;
     }
+
     setError(null);
     setSubmitting(true);
 
-    // Returning user: profile already exists and email matches → straight in.
-    if (profile && profile.email.toLowerCase() === email.trim().toLowerCase()) {
-      await signIn(profile);
-      haptics.success();
-      router.replace('/(tabs)/home');
+    const { error: authError } = isSignup
+      ? await authClient.signUp.email({ email: email.trim(), password, name: name.trim() })
+      : await authClient.signIn.email({ email: email.trim(), password });
+
+    setSubmitting(false);
+
+    if (authError) {
+      setError(authError.message ?? 'Something went wrong. Please try again.');
+      haptics.error();
       return;
     }
 
-    // New user: carry the email into profile setup.
+    haptics.success();
+    // The gate routes new accounts to profile-setup and returning users home.
+    router.replace('/');
+  };
+
+  const toggleMode = () => {
     haptics.selection();
-    router.push({ pathname: '/profile-setup', params: { email: email.trim() } });
-    setSubmitting(false);
+    setError(null);
+    setMode((m) => (m === 'signin' ? 'signup' : 'signin'));
   };
 
   return (
@@ -70,18 +91,37 @@ export default function SignInScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <FadeIn>
-          <View style={[styles.mark, { backgroundColor: theme.brandDeep }]}>
-            <Ionicons name="water" size={32} color="#fff" />
+          <View
+            style={[
+              styles.mark,
+              theme.isDark
+                ? { backgroundColor: theme.surfaceElevated, borderWidth: 1, borderColor: theme.border }
+                : { backgroundColor: theme.brandDeep },
+            ]}>
+            <Ionicons name="water" size={32} color={theme.isDark ? theme.brand : '#fff'} />
           </View>
           <ThemedText type="display" style={styles.title}>
-            Welcome back
+            {isSignup ? 'Create account' : 'Welcome back'}
           </ThemedText>
           <ThemedText type="body" color="textSecondary" style={styles.subtitle}>
-            Sign in to keep saving lives with Vesta.
+            {isSignup
+              ? 'Join Blood Bridge and start saving lives.'
+              : 'Sign in to keep saving lives with Blood Bridge.'}
           </ThemedText>
         </FadeIn>
 
         <FadeIn delay={80} style={styles.form}>
+          {isSignup ? (
+            <Input
+              label="Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="Alex Rivera"
+              autoCapitalize="words"
+              autoComplete="name"
+              icon="person-outline"
+            />
+          ) : null}
           <Input
             label="Email"
             value={email}
@@ -99,25 +139,32 @@ export default function SignInScreen() {
             placeholder="••••••••"
             secureTextEntry
             icon="lock-closed-outline"
+            hint={isSignup ? 'At least 8 characters' : undefined}
             error={error ?? undefined}
           />
         </FadeIn>
 
         <FadeIn delay={140} style={styles.actions}>
           <Button
-            label="Continue"
-            onPress={onContinue}
+            label={isSignup ? 'Create account' : 'Sign in'}
+            onPress={onSubmit}
             loading={submitting}
             fullWidth
             size="lg"
           />
-          <View style={styles.hintRow}>
-            <View style={[styles.line, { backgroundColor: theme.border }]} />
-            <ThemedText type="footnote" color="textTertiary">
-              New here? Continue creates your account
+          <PressableScale
+            onPress={toggleMode}
+            haptic={false}
+            accessibilityRole="button"
+            accessibilityLabel={isSignup ? 'Switch to sign in' : 'Switch to create account'}
+            style={styles.switchRow}>
+            <ThemedText type="footnote" color="textSecondary">
+              {isSignup ? 'Already have an account?' : 'New to Blood Bridge?'}
             </ThemedText>
-            <View style={[styles.line, { backgroundColor: theme.border }]} />
-          </View>
+            <ThemedText type="footnote" color="brand" style={styles.switchLink}>
+              {isSignup ? 'Sign in' : 'Create one'}
+            </ThemedText>
+          </PressableScale>
         </FadeIn>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -142,6 +189,6 @@ const styles = StyleSheet.create({
   subtitle: {},
   form: { gap: Spacing.base },
   actions: { gap: Spacing.lg },
-  hintRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  line: { flex: 1, height: StyleSheet.hairlineWidth },
+  switchRow: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.xs },
+  switchLink: { fontWeight: '600' },
 });

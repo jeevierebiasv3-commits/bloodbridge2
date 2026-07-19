@@ -14,13 +14,26 @@ import { ThemedText } from '@/components/themed-text';
 import { Badge, Button, Card, FadeIn, ScreenHeader, useToast } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
-import { mockCenters } from '@/data/mock';
+import { useBookAppointment, useCenters } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
 import { haptics } from '@/lib/haptics';
-import { useAppStore } from '@/store/app-store';
-import { Appointment } from '@/types/domain';
+import type { Donation } from '@/types/domain';
 
 const SLOTS = ['08:30', '09:15', '10:00', '11:30', '13:00', '14:45', '16:00'];
+
+type DonationType = Donation['type'];
+
+const DONATION_TYPES: {
+  value: DonationType;
+  label: string;
+  detail: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { value: 'whole', label: 'Whole blood', detail: 'The most common donation', icon: 'water' },
+  { value: 'plasma', label: 'Plasma', detail: 'Cells returned to you', icon: 'flask' },
+  { value: 'platelets', label: 'Platelets', detail: 'For cancer & surgery care', icon: 'shield-half' },
+  { value: 'power_red', label: 'Power Red', detail: 'Two units of red cells', icon: 'water' },
+];
 
 function nextDays(count: number): { iso: string; label: string; dow: string }[] {
   const out: { iso: string; label: string; dow: string }[] = [];
@@ -42,36 +55,40 @@ export default function BookScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { bookAppointment } = useAppStore();
+  const { data: centers = [] } = useCenters();
+  const bookAppointment = useBookAppointment();
 
   const days = useMemo(() => nextDays(10), []);
-  const [centerId, setCenterId] = useState(mockCenters[0]?.id ?? '');
+  const [centerId, setCenterId] = useState('');
+  const [type, setType] = useState<DonationType>('whole');
   const [dayIso, setDayIso] = useState(days[1]?.iso ?? days[0].iso);
   const [slot, setSlot] = useState<string | null>(null);
 
-  const center = mockCenters.find((c) => c.id === centerId) ?? mockCenters[0];
-  const canConfirm = Boolean(center && slot);
+  // Default the selection to the first center once the list loads.
+  const center = centers.find((c) => c.id === centerId) ?? centers[0];
+  const canConfirm = Boolean(center && slot && !bookAppointment.isPending);
 
-  const confirm = () => {
-    if (!center || !slot) {
-      haptics.error();
+  const confirm = async () => {
+    if (!center || !slot || bookAppointment.isPending) {
+      if (!center || !slot) haptics.error();
       return;
     }
     const [h, m] = slot.split(':').map(Number);
     const when = new Date(dayIso);
     when.setHours(h, m, 0, 0);
-    const appointment: Appointment = {
-      id: `apt-${when.getTime()}`,
-      centerName: center.name,
-      address: center.address,
-      date: when.toISOString(),
-      status: 'confirmed',
-      type: 'whole',
-    };
-    void bookAppointment(appointment);
-    haptics.success();
-    toast.show('Appointment confirmed', 'success');
-    router.back();
+    try {
+      await bookAppointment.mutateAsync({
+        centerId: center.id,
+        date: when.toISOString(),
+        type,
+      });
+      haptics.success();
+      toast.show('Appointment confirmed', 'success');
+      router.back();
+    } catch {
+      haptics.error();
+      toast.show('Could not book the appointment. Please try again.', 'danger');
+    }
   };
 
   return (
@@ -96,8 +113,8 @@ export default function BookScreen() {
           Center
         </ThemedText>
         <View style={styles.stack}>
-          {mockCenters.map((c) => {
-            const active = c.id === centerId;
+          {centers.map((c) => {
+            const active = c.id === center?.id;
             return (
               <Card
                 key={c.id}
@@ -135,8 +152,49 @@ export default function BookScreen() {
         </View>
       </FadeIn>
 
-      {/* Day selection */}
+      {/* Donation type */}
       <FadeIn delay={60}>
+        <ThemedText type="headline" style={styles.section}>
+          Donation type
+        </ThemedText>
+        <View style={styles.typeGrid}>
+          {DONATION_TYPES.map((t) => {
+            const active = t.value === type;
+            return (
+              <PressableScale
+                key={t.value}
+                onPress={() => {
+                  haptics.selection();
+                  setType(t.value);
+                }}
+                haptic={false}
+                accessibilityRole="button"
+                accessibilityLabel={`${t.label}. ${t.detail}`}
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.typeTile,
+                  {
+                    backgroundColor: active ? theme.brandSubtle : theme.surfaceSunken,
+                    borderColor: active ? theme.brand : theme.border,
+                  },
+                ]}>
+                <View style={styles.typeHead}>
+                  <Ionicons name={t.icon} size={18} color={active ? theme.brand : theme.textSecondary} />
+                  <ThemedText type="bodyStrong" color={active ? 'brand' : 'text'}>
+                    {t.label}
+                  </ThemedText>
+                </View>
+                <ThemedText type="caption" color="textSecondary" numberOfLines={1}>
+                  {t.detail}
+                </ThemedText>
+              </PressableScale>
+            );
+          })}
+        </View>
+      </FadeIn>
+
+      {/* Day selection */}
+      <FadeIn delay={120}>
         <ThemedText type="headline" style={styles.section}>
           Date
         </ThemedText>
@@ -158,10 +216,10 @@ export default function BookScreen() {
                   styles.day,
                   { backgroundColor: active ? theme.brand : theme.surfaceSunken, borderColor: active ? theme.brand : theme.border },
                 ]}>
-                <ThemedText type="caption" style={{ color: active ? theme.onColor : theme.textSecondary }}>
+                <ThemedText type="caption" style={{ color: active ? theme.onBrand : theme.textSecondary }}>
                   {d.dow.toUpperCase()}
                 </ThemedText>
-                <ThemedText type="title2" style={{ color: active ? theme.onColor : theme.text }}>
+                <ThemedText type="title2" style={{ color: active ? theme.onBrand : theme.text }}>
                   {d.label}
                 </ThemedText>
               </PressableScale>
@@ -171,7 +229,7 @@ export default function BookScreen() {
       </FadeIn>
 
       {/* Time slots */}
-      <FadeIn delay={120}>
+      <FadeIn delay={180}>
         <ThemedText type="headline" style={styles.section}>
           Time
         </ThemedText>
@@ -193,7 +251,7 @@ export default function BookScreen() {
                   styles.slot,
                   { backgroundColor: active ? theme.brand : theme.surfaceSunken, borderColor: active ? theme.brand : theme.border },
                 ]}>
-                <ThemedText type="callout" style={{ color: active ? theme.onColor : theme.text }}>
+                <ThemedText type="callout" style={{ color: active ? theme.onBrand : theme.text }}>
                   {s}
                 </ThemedText>
               </PressableScale>
@@ -202,7 +260,7 @@ export default function BookScreen() {
         </View>
       </FadeIn>
 
-      <FadeIn delay={180}>
+      <FadeIn delay={240}>
         <View style={styles.summary}>
           {slot ? (
             <Badge label={`${center?.name} · ${slot}`} tone="brand" />
@@ -212,7 +270,7 @@ export default function BookScreen() {
             </ThemedText>
           )}
         </View>
-        <Button label="Confirm appointment" fullWidth icon="checkmark-circle" disabled={!canConfirm} onPress={confirm} />
+        <Button label="Confirm appointment" fullWidth icon="checkmark-circle" disabled={!canConfirm} loading={bookAppointment.isPending} onPress={confirm} />
       </FadeIn>
     </ScrollView>
   );
@@ -227,6 +285,18 @@ const styles = StyleSheet.create({
   centerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   centerIcon: { width: 40, height: 40, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   centerBody: { flex: 1, gap: 2 },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  typeTile: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    minWidth: 150,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    gap: 4,
+  },
+  typeHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   dayRow: { gap: Spacing.sm, paddingVertical: Spacing.xs },
   day: {
     width: 60,

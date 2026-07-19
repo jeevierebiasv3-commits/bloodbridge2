@@ -35,7 +35,7 @@ export function StatTile({ label, value, icon, tint = 'neutral' }: StatTileProps
       <ThemedText type="title2" style={styles.value}>
         {value}
       </ThemedText>
-      <ThemedText type="footnote" color="textSecondary">
+      <ThemedText type="footnote" color="textSecondary" numberOfLines={2} style={styles.label}>
         {label}
       </ThemedText>
     </Card>
@@ -53,4 +53,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   value: { marginTop: 'auto' },
+  // Reserve two label lines so values stay baseline-aligned across a tile row
+  // even when one label wraps ("Lives helped") and its neighbors don't.
+  label: { minHeight: 36 },
 });

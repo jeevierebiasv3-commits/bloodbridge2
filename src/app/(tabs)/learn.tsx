@@ -10,11 +10,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Card, FadeIn, ScreenHeader } from '@/components/ui';
+import { Card, FadeIn, ScreenHeader, SkeletonCard } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
+import { useArticles } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
-import { mockEducation } from '@/data/mock';
 import { EducationArticle } from '@/types/domain';
 
 const CATEGORIES: { key: EducationArticle['category'] | 'all'; label: string }[] = [
@@ -30,45 +30,53 @@ export default function LearnScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<EducationArticle['category'] | 'all'>('all');
+  const { data: allArticles = [], isLoading } = useArticles();
 
+  const featured = allArticles[0];
+
+  // The featured article already headlines the screen — keep it out of the
+  // "All" list so content never appears twice in one viewport.
   const articles = useMemo(
-    () => (category === 'all' ? mockEducation : mockEducation.filter((a) => a.category === category)),
-    [category],
+    () =>
+      category === 'all'
+        ? allArticles.filter((a) => a.id !== featured?.id)
+        : allArticles.filter((a) => a.category === category),
+    [category, featured?.id, allArticles],
   );
-
-  const featured = mockEducation[0];
 
   return (
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + 120 },
+        { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + TabBarClearance },
       ]}
       showsVerticalScrollIndicator={false}>
       <ScreenHeader title="Learn" subtitle="Everything about giving blood, made simple" />
 
       {/* Featured */}
-      <FadeIn>
-        <PressableScale
-          scaleTo={0.985}
-          onPress={() => router.push({ pathname: '/article/[id]', params: { id: featured.id } })}>
-          <View style={[styles.featured, { backgroundColor: theme.brandSubtle, borderColor: theme.border }]}>
-            <View style={[styles.featuredIcon, { backgroundColor: theme.surface }]}>
-              <Ionicons name="sparkles" size={22} color={theme.brand} />
+      {featured ? (
+        <FadeIn>
+          <PressableScale
+            scaleTo={0.985}
+            onPress={() => router.push({ pathname: '/article/[id]', params: { id: featured.id } })}>
+            <View style={[styles.featured, { backgroundColor: theme.brandSubtle, borderColor: theme.border }]}>
+              <View style={[styles.featuredIcon, { backgroundColor: theme.surface }]}>
+                <Ionicons name="sparkles" size={22} color={theme.brand} />
+              </View>
+              <ThemedText type="footnote" style={[styles.featuredKicker, { color: theme.brand }]}>
+                FEATURED · {featured.minutes} MIN READ
+              </ThemedText>
+              <ThemedText type="title2" style={styles.featuredTitle}>
+                {featured.title}
+              </ThemedText>
+              <ThemedText type="subhead" color="textSecondary" style={styles.featuredSummary}>
+                {featured.summary}
+              </ThemedText>
             </View>
-            <ThemedText type="footnote" style={[styles.featuredKicker, { color: theme.brand }]}>
-              FEATURED · {featured.minutes} MIN READ
-            </ThemedText>
-            <ThemedText type="title2" style={styles.featuredTitle}>
-              {featured.title}
-            </ThemedText>
-            <ThemedText type="subhead" color="textSecondary" style={styles.featuredSummary}>
-              {featured.summary}
-            </ThemedText>
-          </View>
-        </PressableScale>
-      </FadeIn>
+          </PressableScale>
+        </FadeIn>
+      ) : null}
 
       {/* Category filter */}
       <ScrollView
@@ -89,7 +97,7 @@ export default function LearnScreen() {
                   borderColor: active ? theme.brand : theme.border,
                 },
               ]}>
-              <ThemedText type="subhead" color={active ? 'onColor' : 'textSecondary'}>
+              <ThemedText type="subhead" color={active ? 'onBrand' : 'textSecondary'}>
                 {c.label}
               </ThemedText>
             </PressableScale>
@@ -99,7 +107,9 @@ export default function LearnScreen() {
 
       {/* Article list */}
       <View style={styles.list}>
-        {articles.map((a, i) => (
+        {isLoading
+          ? [0, 1, 2].map((i) => <SkeletonCard key={i} />)
+          : articles.map((a, i) => (
           <FadeIn key={a.id} delay={i * 40}>
             <Card
               onPress={() => router.push({ pathname: '/article/[id]', params: { id: a.id } })}

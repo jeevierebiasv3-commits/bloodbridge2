@@ -1,5 +1,5 @@
 /**
- * Vesta design tokens — the single source of truth for color, type, spacing,
+ * Blood Bridge design tokens — the single source of truth for color, type, spacing,
  * radius, and elevation. See design.md. Never hardcode values outside this file.
  */
 
@@ -9,11 +9,12 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    // Brand
-    brand: '#D9474D',
-    brandStrong: '#C93A42',
+    // Brand — deep crimson tuned so onBrand text meets WCAG AA (≥4.5:1).
+    brand: '#C42F38',
+    brandStrong: '#A82730',
     brandSubtle: '#FEEBEC',
     brandDeep: '#151A36',
+    /** Text/icons on `brand`/accent fills. Flips to ink in dark mode. */
     onBrand: '#FFFFFF',
     // Surfaces
     background: '#FBFBFC',
@@ -23,28 +24,36 @@ export const Colors = {
     // Text
     text: '#16192D',
     textSecondary: '#596078',
-    textTertiary: '#7B8299',
+    textTertiary: '#6C7288',
+    /** Text/icons on `brandDeep` and other permanently dark panels. Always white. */
     onColor: '#FFFFFF',
+    /** Secondary text on permanently dark panels. */
+    onColorSecondary: 'rgba(255,255,255,0.85)',
+    /** Hints/captions on permanently dark panels. */
+    onColorTertiary: 'rgba(255,255,255,0.70)',
+    /** Hairlines, ghost borders, progress tracks on permanently dark panels. */
+    onColorFaint: 'rgba(255,255,255,0.24)',
     // Lines
     border: '#E8E9F0',
     borderStrong: '#D5D8E4',
-    // Status
-    success: '#30A46C',
+    // Status — each passes AA both as a fill under onBrand and as text on its subtle tint.
+    success: '#1B7A4B',
     successSubtle: '#E7F6EC',
-    warning: '#D97706',
+    warning: '#B45309',
     warningSubtle: '#FEF3E2',
-    danger: '#E5484D',
+    danger: '#D2262D',
     dangerSubtle: '#FEEBEC',
-    info: '#3B82F6',
+    info: '#2563EB',
     infoSubtle: '#E8F1FE',
   },
   dark: {
-    // Brand
+    // Brand — light coral accent; dark ink label on top (iOS-style flip) for ~7:1.
     brand: '#FF777B',
     brandStrong: '#F05C64',
     brandSubtle: '#2A1416',
     brandDeep: '#0E1125',
-    onBrand: '#FFFFFF',
+    /** Text/icons on `brand`/accent fills. Ink, not white — white fails AA on light coral. */
+    onBrand: '#1F0A0B',
     // Surfaces
     background: '#08080A',
     surface: '#131316',
@@ -53,8 +62,15 @@ export const Colors = {
     // Text
     text: '#F7F7FB',
     textSecondary: '#A5A8BC',
-    textTertiary: '#777B92',
+    textTertiary: '#8A8EA5',
+    /** Text/icons on `brandDeep` and other permanently dark panels. Always white. */
     onColor: '#FFFFFF',
+    /** Secondary text on permanently dark panels. */
+    onColorSecondary: 'rgba(255,255,255,0.85)',
+    /** Hints/captions on permanently dark panels. */
+    onColorTertiary: 'rgba(255,255,255,0.70)',
+    /** Hairlines, ghost borders, progress tracks on permanently dark panels. */
+    onColorFaint: 'rgba(255,255,255,0.24)',
     // Lines
     border: '#282B3D',
     borderStrong: '#3A3E54',
@@ -116,40 +132,27 @@ export const Radius = {
   full: 999,
 } as const;
 
-/** Soft, low-spread elevation. Consumed via `elevation()` helper. */
+/**
+ * Soft, low-spread elevation via cross-platform `boxShadow` (New Architecture).
+ * The old `shadow*` + `elevation` pair rendered as harsh dark system shadows on
+ * Android (where `shadow*` is ignored and only `elevation` draws); boxShadow
+ * renders these exact soft values identically on iOS, Android 9+, and web.
+ */
 export const Shadow = {
-  none: {
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-  },
-  sm: {
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
-  },
+  none: { boxShadow: undefined },
+  sm: { boxShadow: '0 1px 3px rgba(22, 25, 45, 0.06)' },
+  md: { boxShadow: '0 4px 12px rgba(22, 25, 45, 0.08)' },
+  lg: { boxShadow: '0 10px 28px rgba(22, 25, 45, 0.12)' },
 } as const;
 
 /** Standard reanimated spring for press + entrance motion. */
 export const Spring = { damping: 18, stiffness: 200, mass: 0.9 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+
+/**
+ * Bottom scroll-content clearance on tab screens: the floating AppTabBar
+ * (~70pt bar + 16pt host padding) plus breathing room. Add `insets.bottom`.
+ */
+export const TabBarClearance = 120;
 export const MaxContentWidth = 640;

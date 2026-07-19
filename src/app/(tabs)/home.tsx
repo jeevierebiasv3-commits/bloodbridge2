@@ -19,44 +19,78 @@ import {
   Card,
   FadeIn,
   ProgressRing,
+  SectionHeader,
 } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { computeEligibility } from '@/lib/blood';
-import { distanceLabel, firstName, greeting, longDate, relativeTime, shortDate } from '@/lib/format';
-import { mockAnnouncements, mockCenters } from '@/data/mock';
-import { useAppStore } from '@/store/app-store';
+import { canDonateTo, computeEligibility, DONATION_INTERVAL_DAYS } from '@/lib/blood';
+import {
+  dayOfMonth,
+  distanceLabel,
+  firstName,
+  greeting,
+  longDate,
+  monthAbbrev,
+  relativeTime,
+  shortDate,
+} from '@/lib/format';
+import {
+  useAnnouncements,
+  useAppointments,
+  useCenters,
+  useDonations,
+  useProfile,
+  useRequests,
+} from '@/hooks/api';
+import { URGENCY_RANK } from '@/types/domain';
 
+// Three honest destinations — no tile duplicates another tile's route.
 const QUICK_ACTIONS = [
-  { key: 'donate', label: 'Donate', icon: 'water' as const, tint: 'brand' as const, href: '/book' as const },
-  { key: 'request', label: 'Request', icon: 'add-circle' as const, tint: 'info' as const, href: '/request/new' as const },
-  { key: 'card', label: 'Donor Card', icon: 'qr-code' as const, tint: 'success' as const, href: '/donor-card' as const },
-  { key: 'centers', label: 'Find Banks', icon: 'location' as const, tint: 'warning' as const, href: '/book' as const },
+  { key: 'donate', label: 'Donate', caption: 'Book a visit', icon: 'water' as const, tint: 'brand' as const, href: '/book' as const },
+  { key: 'request', label: 'Request', caption: 'Ask for help', icon: 'add-circle' as const, tint: 'info' as const, href: '/request/new' as const },
+  { key: 'card', label: 'Donor Card', caption: 'Ready 24/7', icon: 'qr-code' as const, tint: 'success' as const, href: '/donor-card' as const },
 ];
 
 export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, requests, appointments, donations } = useAppStore();
+  const { data: profile } = useProfile();
+  const { data: requests = [], refetch } = useRequests();
+  const { data: appointments = [] } = useAppointments();
+  const { data: donations = [] } = useDonations();
+  const { data: centers = [] } = useCenters();
+  const { data: announcements = [] } = useAnnouncements();
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 900);
-  }, []);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const eligibility = useMemo(
     () => computeEligibility(profile?.lastDonationDate),
     [profile?.lastDonationDate],
   );
 
+  // Only requests this donor can actually serve — most urgent first, nearest
+  // as the tiebreak. Two cards max; the Feed tab owns the full list.
   const compatibleRequests = useMemo(() => {
     if (!profile) return [];
     return requests
-      .filter((r) => (r.status === 'open' || r.status === 'partial') && r.ownerId !== profile.id)
-      .slice(0, 3);
+      .filter(
+        (r) =>
+          (r.status === 'open' || r.status === 'partial') &&
+          r.ownerId !== profile.id &&
+          canDonateTo(profile.bloodType, r.bloodType),
+      )
+      .sort(
+        (a, b) =>
+          URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency] || a.distanceKm - b.distanceKm,
+      )
+      .slice(0, 2);
   }, [requests, profile]);
 
   const myActiveRequests = useMemo(() => {
@@ -74,7 +108,10 @@ export default function HomeScreen() {
     [appointments],
   );
 
-  const nearestCenter = mockCenters[0] ?? null;
+  const nearestCenter = useMemo(
+    () => [...centers].sort((a, b) => a.distanceKm - b.distanceKm)[0] ?? null,
+    [centers],
+  );
   const unitsGiven = donations.reduce((sum, d) => sum + d.units, 0);
   const lastDonation = useMemo(
     () =>
@@ -90,7 +127,7 @@ export default function HomeScreen() {
     <ScrollView
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + 120 },
+        { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + TabBarClearance },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -105,31 +142,19 @@ export default function HomeScreen() {
                 <Ionicons name="water" size={13} color={theme.brand} />
               </View>
               <ThemedText type="caption" color="brand" style={styles.brandWordmark}>
-                VESTA
+                BLOOD BRIDGE
               </ThemedText>
             </View>
             <ThemedText type="title">{greeting()}, {firstName(profile.fullName)}</ThemedText>
           </View>
-          <View style={styles.headerActions}>
-            <PressableScale
-              onPress={() => router.push('/(tabs)/feed')}
-              haptic="light"
-              accessibilityRole="button"
-              accessibilityLabel={
-                compatibleRequests.length > 0
-                  ? `Open emergency feed, ${compatibleRequests.length} requests need your type`
-                  : 'Open emergency feed'
-              }
-              style={[styles.iconButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons name="notifications-outline" size={21} color={theme.text} />
-              {compatibleRequests.length > 0 ? (
-                <View style={[styles.notificationDot, { backgroundColor: theme.brand, borderColor: theme.surface }]} />
-              ) : null}
-            </PressableScale>
-            <PressableScale onPress={() => router.push('/(tabs)/profile')} accessibilityLabel="Your profile">
-              <Avatar name={profile.fullName} color={profile.avatarColor} size={44} />
-            </PressableScale>
-          </View>
+          {/* Just the avatar — the Feed tab already owns emergency requests, so a
+              bell that duplicated it was noise, not signal. */}
+          <PressableScale
+            onPress={() => router.push('/(tabs)/profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Your profile">
+            <Avatar name={profile.fullName} color={profile.avatarColor} size={44} />
+          </PressableScale>
         </View>
       </FadeIn>
 
@@ -146,26 +171,36 @@ export default function HomeScreen() {
                   { backgroundColor: eligibility.eligible ? theme.success : theme.warning },
                 ]}
               />
-              <ThemedText type="footnote" style={styles.heroEyebrowText}>
+              <ThemedText type="footnote" color="onColorSecondary">
                 {eligibility.eligible ? 'Eligible to donate' : 'In your donation cycle'}
               </ThemedText>
             </View>
-            <ThemedText type="title2" style={[styles.heroTitle, { color: theme.onColor }]}>
+            <ThemedText type="title2" style={{ color: theme.onColor }}>
               {eligibility.eligible ? 'Your next good thing' : `Ready in ${eligibility.daysRemaining} days`}
             </ThemedText>
-            <ThemedText type="footnote" style={styles.heroSub}>
+            <ThemedText type="footnote" color="onColorSecondary">
               {eligibility.eligible
-                ? 'You are eligible to donate. A nearby appointment is waiting.'
+                ? nextAppointment
+                  ? `Your visit is booked for ${shortDate(nextAppointment.date)}.`
+                  : 'Book a visit at a donation center near you.'
                 : `Next eligible ${shortDate(eligibility.nextEligibleDate.toISOString())}`}
             </ThemedText>
             {eligibility.eligible ? (
               <PressableScale
-                onPress={() => router.push('/book')}
+                onPress={() =>
+                  router.push(
+                    nextAppointment
+                      ? { pathname: '/appointment/[id]', params: { id: nextAppointment.id } }
+                      : '/book',
+                  )
+                }
                 haptic="medium"
                 accessibilityRole="button"
-                accessibilityLabel="Book a donation"
+                accessibilityLabel={nextAppointment ? 'View your appointment' : 'Book a donation'}
                 style={[styles.heroCta, { backgroundColor: theme.brand }]}>
-                <ThemedText type="subhead" style={[styles.heroCtaText, { color: theme.onBrand }]}>Book a donation</ThemedText>
+                <ThemedText type="subhead" style={{ color: theme.onBrand }}>
+                  {nextAppointment ? 'View appointment' : 'Book a donation'}
+                </ThemedText>
                 <Ionicons name="arrow-forward" size={17} color={theme.onBrand} />
               </PressableScale>
             ) : (
@@ -174,8 +209,8 @@ export default function HomeScreen() {
                 haptic="light"
                 accessibilityRole="button"
                 accessibilityLabel="Track your donation cycle"
-                style={[styles.heroCtaGhost, { borderColor: 'rgba(255,255,255,0.24)' }]}>
-                <ThemedText type="subhead" style={[styles.heroCtaText, { color: theme.onColor }]}>Track your cycle</ThemedText>
+                style={[styles.heroCtaGhost, { borderColor: theme.onColorFaint }]}>
+                <ThemedText type="subhead" style={{ color: theme.onColor }}>Track your cycle</ThemedText>
                 <Ionicons name="arrow-forward" size={17} color={theme.onColor} />
               </PressableScale>
             )}
@@ -186,7 +221,7 @@ export default function HomeScreen() {
               size={94}
               strokeWidth={8}
               color={theme.brand}
-              trackColor="rgba(255,255,255,0.22)"
+              trackColor={theme.onColorFaint}
               accessibilityLabel={
                 eligibility.eligible
                   ? 'Donation cycle complete, you are eligible'
@@ -194,7 +229,7 @@ export default function HomeScreen() {
               }>
               <BloodTypeGlyph type={profile.bloodType} size="lg" onDark />
             </ProgressRing>
-            <ThemedText type="caption" style={styles.cycleLabel}>56-day cycle</ThemedText>
+            <ThemedText type="caption" color="onColorTertiary">{DONATION_INTERVAL_DAYS}-day cycle</ThemedText>
           </View>
         </View>
       </FadeIn>
@@ -208,7 +243,7 @@ export default function HomeScreen() {
             onAction={() => router.push('/(tabs)/feed')}
           />
           <View style={styles.stack}>
-            {compatibleRequests.slice(0, 2).map((r) => (
+            {compatibleRequests.map((r) => (
               <RequestCard
                 key={r.id}
                 request={r}
@@ -242,12 +277,20 @@ export default function HomeScreen() {
       {/* Next appointment — an upcoming commitment */}
       {nextAppointment ? (
         <FadeIn delay={200}>
-          <SectionHeader title="Your next appointment" actionLabel="Manage" onAction={() => router.push('/(tabs)/donor')} />
-          <Card onPress={() => router.push('/(tabs)/donor')} variant="tinted" tint={theme.infoSubtle}>
+          <SectionHeader
+            title="Your next appointment"
+            actionLabel="Manage"
+            onAction={() => router.push({ pathname: '/appointment/[id]', params: { id: nextAppointment.id } })}
+          />
+          <Card
+            onPress={() => router.push({ pathname: '/appointment/[id]', params: { id: nextAppointment.id } })}
+            accessibilityLabel={`Next appointment: ${nextAppointment.centerName}, ${longDate(nextAppointment.date)}, ${nextAppointment.status === 'confirmed' ? 'confirmed' : 'pending'}`}
+            variant="tinted"
+            tint={theme.infoSubtle}>
             <View style={styles.aptRow}>
               <View style={[styles.dateBadge, { backgroundColor: theme.surface }]}>
-                <ThemedText type="caption" color="brand">{new Date(nextAppointment.date).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</ThemedText>
-                <ThemedText type="title2" color="brand">{new Date(nextAppointment.date).getDate()}</ThemedText>
+                <ThemedText type="caption" color="brand">{monthAbbrev(nextAppointment.date).toUpperCase()}</ThemedText>
+                <ThemedText type="title2" color="brand">{dayOfMonth(nextAppointment.date)}</ThemedText>
               </View>
               <View style={styles.aptBody}>
                 <ThemedText type="bodyStrong">{nextAppointment.centerName}</ThemedText>
@@ -266,30 +309,24 @@ export default function HomeScreen() {
 
       {/* Tier 2 — Explore: shortcuts and nearby options, separated from the urgent tier */}
       <FadeIn delay={240} style={styles.tierBreak}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="headline">Make a difference</ThemedText>
-          <ThemedText type="footnote" color="textSecondary">Choose your next step</ThemedText>
-        </View>
-        <View style={styles.actionsGrid}>
+        <SectionHeader title="Make a difference" subtitle="Choose your next step" />
+        <View style={styles.actionsRow}>
           {QUICK_ACTIONS.map((a) => (
             <PressableScale
               key={a.key}
               onPress={() => router.push(a.href)}
               haptic="light"
               accessibilityRole="button"
-              accessibilityLabel={a.label}
+              accessibilityLabel={`${a.label}. ${a.caption}`}
               style={[styles.action, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={styles.actionTopRow}>
-                <View style={[styles.actionIcon, { backgroundColor: theme[`${a.tint}Subtle`] }]}>
-                  <Ionicons name={a.icon} size={21} color={theme[a.tint]} />
-                </View>
-                <Ionicons name="arrow-forward-outline" size={17} color={theme.textTertiary} />
+              <View style={[styles.actionIcon, { backgroundColor: theme[`${a.tint}Subtle`] }]}>
+                <Ionicons name={a.icon} size={21} color={theme[a.tint]} />
               </View>
-              <ThemedText type="bodyStrong" style={styles.actionLabel}>
+              <ThemedText type="subhead" style={styles.actionLabel} numberOfLines={1}>
                 {a.label}
               </ThemedText>
-              <ThemedText type="caption" color="textTertiary">
-                {a.key === 'donate' ? 'Book a visit' : a.key === 'request' ? 'Ask for help' : a.key === 'card' ? 'Always ready' : 'Near you'}
+              <ThemedText type="caption" color="textTertiary" numberOfLines={1}>
+                {a.caption}
               </ThemedText>
             </PressableScale>
           ))}
@@ -300,7 +337,9 @@ export default function HomeScreen() {
       {nearestCenter ? (
         <FadeIn delay={280}>
           <SectionHeader title="Nearby donation center" />
-          <Card onPress={() => router.push('/book')}>
+          <Card
+            onPress={() => router.push('/book')}
+            accessibilityLabel={`${nearestCenter.name}, ${distanceLabel(nearestCenter.distanceKm)} away, ${nearestCenter.openNow ? 'open now' : 'closed'}. Book a visit.`}>
             <View style={styles.centerRow}>
               <View style={[styles.aptIcon, { backgroundColor: theme.infoSubtle }]}>
                 <Ionicons name="business" size={22} color={theme.info} />
@@ -317,28 +356,27 @@ export default function HomeScreen() {
         </FadeIn>
       ) : null}
 
-      {/* Announcements */}
-      <FadeIn delay={320}>
-        <SectionHeader title="Announcements" />
-        <View style={styles.stack}>
-          {mockAnnouncements.slice(0, 2).map((a) => (
-            <Card key={a.id} variant="outline">
-              <View style={styles.annRow}>
-                <Badge label={a.tag} tone={a.tone === 'brand' ? 'brand' : a.tone} />
-                <ThemedText type="caption" color="textTertiary">
-                  {relativeTime(a.date)}
-                </ThemedText>
-              </View>
-              <ThemedText type="bodyStrong" style={styles.annTitle}>
-                {a.title}
+      {/* Latest announcement — one card, not a feed. Home stays personal; the
+          screen shouldn't compete with itself below the fold. */}
+      {announcements[0] ? (
+        <FadeIn delay={320}>
+          <SectionHeader title="Latest update" />
+          <Card variant="outline">
+            <View style={styles.annRow}>
+              <Badge label={announcements[0].tag} tone={announcements[0].tone} />
+              <ThemedText type="caption" color="textTertiary">
+                {relativeTime(announcements[0].date)}
               </ThemedText>
-              <ThemedText type="footnote" color="textSecondary">
-                {a.body}
-              </ThemedText>
-            </Card>
-          ))}
-        </View>
-      </FadeIn>
+            </View>
+            <ThemedText type="bodyStrong" style={styles.annTitle}>
+              {announcements[0].title}
+            </ThemedText>
+            <ThemedText type="footnote" color="textSecondary" numberOfLines={2}>
+              {announcements[0].body}
+            </ThemedText>
+          </Card>
+        </FadeIn>
+      ) : null}
 
       {/* Tier 3 — Reflection: impact lives at the bottom, a quiet coda, not a competing headline */}
       <FadeIn delay={360} style={styles.tierBreak}>
@@ -366,29 +404,6 @@ export default function HomeScreen() {
         </Card>
       </FadeIn>
     </ScrollView>
-  );
-}
-
-function SectionHeader({
-  title,
-  actionLabel,
-  onAction,
-}: {
-  title: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <View style={styles.sectionHeader}>
-      <ThemedText type="headline">{title}</ThemedText>
-      {actionLabel && onAction ? (
-        <PressableScale onPress={onAction} accessibilityRole="button" accessibilityLabel={actionLabel}>
-          <ThemedText type="subhead" color="brand">
-            {actionLabel}
-          </ThemedText>
-        </PressableScale>
-      ) : null}
-    </View>
   );
 }
 
@@ -422,9 +437,6 @@ const styles = StyleSheet.create({
   brandLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   brandMark: { width: 24, height: 24, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
   brandWordmark: { letterSpacing: 1.2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  iconButton: { width: 44, height: 44, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
-  notificationDot: { position: 'absolute', top: 10, right: 10, width: 6, height: 6, borderRadius: 3, borderWidth: 1.5 },
   hero: {
     minHeight: 238,
     flexDirection: 'row',
@@ -440,38 +452,34 @@ const styles = StyleSheet.create({
   heroRing: { position: 'absolute', width: 250, height: 250, borderRadius: 125, right: -102, top: -78, borderWidth: 1, opacity: 0.34 },
   heroEyebrow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   liveDot: { width: 7, height: 7, borderRadius: 4 },
-  heroEyebrowText: { color: 'rgba(255,255,255,0.82)' },
-  heroTitle: {},
-  heroSub: { color: 'rgba(255,255,255,0.85)' },
   heroCta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.full, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, marginTop: Spacing.xs },
   heroCtaGhost: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.full, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, marginTop: Spacing.xs },
-  heroCtaText: {},
   heroRingWrap: { alignItems: 'center', gap: Spacing.sm, zIndex: 1 },
-  cycleLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11, letterSpacing: 0 },
   impactCard: { gap: Spacing.base },
   impactHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
   impactHeadText: { flex: 1, gap: Spacing.xs },
   impactIcon: { width: 36, height: 36, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center' },
-  impactStats: { flexDirection: 'row', alignItems: 'center' },
+  impactStats: { flexDirection: 'row', alignItems: 'center', gap: Spacing.base },
   impactStat: { flex: 1, gap: Spacing.xs },
   statDivider: { width: StyleSheet.hairlineWidth, height: 34 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: Spacing.md },
-  action: { width: '48%', minHeight: 116, borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.md, gap: Spacing.sm },
-  actionTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  actionsRow: { flexDirection: 'row', gap: Spacing.md },
+  action: {
+    flex: 1,
+    minHeight: 108,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.md,
+    gap: 2,
+  },
   actionIcon: {
     width: 36,
     height: 36,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
-  actionLabel: { marginTop: 'auto' },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
+  actionLabel: { fontWeight: '600', marginTop: 'auto' },
   stack: { gap: Spacing.md },
   aptRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   aptIcon: {

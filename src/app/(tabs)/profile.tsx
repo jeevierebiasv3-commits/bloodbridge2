@@ -20,10 +20,12 @@ import {
   useToast,
 } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
+import { useDonations, useProfile } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
+import { authClient } from '@/lib/auth-client';
 import { UNIVERSAL_DONOR } from '@/lib/blood';
-import { useAppStore } from '@/store/app-store';
+import { queryClient } from '@/lib/query';
 
 type Row = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -37,7 +39,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { profile, donations, signOut, resetDemoData } = useAppStore();
+  const { data: profile } = useProfile();
+  const { data: donations = [] } = useDonations();
   const [confirmOut, setConfirmOut] = useState(false);
 
   if (!profile) return null;
@@ -49,7 +52,7 @@ export default function ProfileScreen() {
       icon: 'person-outline',
       label: 'Personal information',
       detail: profile.email,
-      onPress: () => router.push('/profile-setup'),
+      onPress: () => router.push('/profile-edit'),
     },
     {
       icon: 'water-outline',
@@ -84,7 +87,7 @@ export default function ProfileScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + 120 },
+          { paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + TabBarClearance },
         ]}
         showsVerticalScrollIndicator={false}>
         <ScreenHeader title="Profile" large={false} />
@@ -142,40 +145,22 @@ export default function ProfileScreen() {
           </PressableScale>
         </FadeIn>
 
-        {__DEV__ ? (
-          <FadeIn delay={280}>
-            <PressableScale
-              haptic="light"
-              onPress={async () => {
-                await resetDemoData();
-                toast.show('Demo data reset to seed', 'info');
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Reset demo data"
-              style={[styles.devReset, { borderColor: theme.border, backgroundColor: theme.surfaceSunken }]}>
-              <Ionicons name="refresh-outline" size={16} color={theme.textSecondary} />
-              <ThemedText type="footnote" color="textSecondary">
-                Reset demo data
-              </ThemedText>
-            </PressableScale>
-          </FadeIn>
-        ) : null}
-
         <ThemedText type="caption" color="textTertiary" style={styles.version}>
-          Vesta · v1.0.0
+          Blood Bridge · v1.0.0
         </ThemedText>
       </ScrollView>
 
       <ConfirmSheet
         visible={confirmOut}
         title="Sign out?"
-        message="This clears your profile and app data on this device and returns you to the start."
+        message="You'll need to sign in again to access your donor profile and requests."
         confirmLabel="Sign out"
         destructive
         onCancel={() => setConfirmOut(false)}
         onConfirm={async () => {
           setConfirmOut(false);
-          await signOut();
+          await authClient.signOut();
+          queryClient.clear();
           router.replace('/');
         }}
       />

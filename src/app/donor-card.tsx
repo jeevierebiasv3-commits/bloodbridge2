@@ -14,21 +14,22 @@ import { Button, FadeIn, QRCode } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useDonations, useProfile } from '@/hooks/api';
 import { computeEligibility } from '@/lib/blood';
 import { longDate } from '@/lib/format';
-import { useAppStore } from '@/store/app-store';
 
 export default function DonorCardScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, donations } = useAppStore();
+  const { data: profile } = useProfile();
+  const { data: donations = [] } = useDonations();
 
   if (!profile) return null;
 
   const eligibility = computeEligibility(profile.lastDonationDate);
   const totalUnits = donations.reduce((sum, d) => sum + d.units, 0);
-  const payload = `VESTA:${profile.id}:${profile.bloodType}:${profile.fullName}`;
+  const payload = `BLOODBRIDGE:${profile.id}:${profile.bloodType}:${profile.fullName}`;
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.background }]}>
@@ -51,7 +52,7 @@ export default function DonorCardScreen() {
               <View style={styles.cardHead}>
                 <View>
                   <ThemedText type="caption" style={styles.cardBrand}>
-                    VESTA DONOR
+                    BLOOD BRIDGE DONOR
                   </ThemedText>
                   <ThemedText type="title2" style={styles.cardName}>
                     {profile.fullName}

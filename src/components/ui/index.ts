@@ -11,6 +11,7 @@ export { PressableScale } from './pressable-scale';
 export { ProgressRing } from './progress-ring';
 export { QRCode } from './qr-code';
 export { ScreenHeader } from './screen-header';
+export { SectionHeader } from './section-header';
 export { SegmentedControl } from './segmented-control';
 export { Skeleton, SkeletonCard } from './skeleton';
 export { StatTile } from './stat-tile';

@@ -12,13 +12,15 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Button, Input, SegmentedControl } from '@/components/ui';
+import { Button, Input, SegmentedControl, useToast } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
+import { useCreateProfile } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
+import { authClient } from '@/lib/auth-client';
 import { haptics } from '@/lib/haptics';
 import { useAppStore } from '@/store/app-store';
-import { BLOOD_TYPES, type BloodType, type Gender, type UserProfile } from '@/types/domain';
+import { BLOOD_TYPES, type BloodType, type Gender } from '@/types/domain';
 
 const AVATAR_COLORS = ['#E5484D', '#3B82F6', '#30A46C', '#8B5CF6', '#D97706', '#EC4899'];
 const STEPS = ['You', 'Blood type', 'Contact', 'Health'] as const;
@@ -27,13 +29,17 @@ export default function ProfileSetupScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { signIn, completeOnboarding } = useAppStore();
+  const toast = useToast();
+  const { completeOnboarding } = useAppStore();
+  const createProfile = useCreateProfile();
+  // Name + email come from the account created at sign-up — prefill both.
+  const { data: session } = authClient.useSession();
 
   const [step, setStep] = useState(0);
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState(session?.user.name ?? '');
   const [gender, setGender] = useState<Gender>('prefer_not');
   const [bloodType, setBloodType] = useState<BloodType | null>(null);
-  const [email, setEmail] = useState('');
+  const [email] = useState(session?.user.email ?? '');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [weight, setWeight] = useState('');
@@ -42,28 +48,29 @@ export default function ProfileSetupScreen() {
   const canAdvance = useMemo(() => {
     if (step === 0) return fullName.trim().length > 1;
     if (step === 1) return bloodType !== null;
-    if (step === 2) return /.+@.+\..+/.test(email) && phone.trim().length >= 6 && city.trim().length > 1;
+    if (step === 2) return phone.trim().length >= 6 && city.trim().length > 1;
     return true;
-  }, [step, fullName, bloodType, email, phone, city]);
+  }, [step, fullName, bloodType, phone, city]);
 
   const finish = async () => {
-    if (!bloodType) return;
-    const profile: UserProfile = {
-      id: `user-${email.toLowerCase()}`,
-      fullName: fullName.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      bloodType,
-      gender,
-      city: city.trim(),
-      avatarColor,
-      health: weight ? { weightKg: Number(weight) || undefined } : undefined,
-      createdAt: new Date().toISOString(),
-    };
-    haptics.success();
-    await signIn(profile);
-    await completeOnboarding();
-    router.replace('/(tabs)/home');
+    if (!bloodType || createProfile.isPending) return;
+    try {
+      await createProfile.mutateAsync({
+        fullName: fullName.trim(),
+        bloodType,
+        phone: phone.trim(),
+        city: city.trim(),
+        gender,
+        avatarColor,
+        weightKg: weight ? Number(weight) || undefined : undefined,
+      });
+      await completeOnboarding();
+      haptics.success();
+      router.replace('/(tabs)/home');
+    } catch {
+      haptics.error();
+      toast.show('Could not save your profile. Please try again.', 'danger');
+    }
   };
 
   const next = () => {
@@ -215,9 +222,10 @@ export default function ProfileSetupScreen() {
                   icon="mail-outline"
                   placeholder="you@example.com"
                   value={email}
-                  onChangeText={setEmail}
+                  editable={false}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  hint="Linked to your account"
                 />
                 <Input
                   label="Phone"
@@ -264,6 +272,7 @@ export default function ProfileSetupScreen() {
             label={step === STEPS.length - 1 ? 'Create profile' : 'Continue'}
             onPress={next}
             disabled={!canAdvance}
+            loading={step === STEPS.length - 1 && createProfile.isPending}
             fullWidth
             size="lg"
             icon={step === STEPS.length - 1 ? 'checkmark' : undefined}

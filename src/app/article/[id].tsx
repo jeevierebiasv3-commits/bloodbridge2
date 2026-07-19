@@ -11,8 +11,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, EmptyState, FadeIn, ScreenHeader } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { useArticles } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
-import { mockEducation } from '@/data/mock';
 
 const CATEGORY_LABEL: Record<string, string> = {
   eligibility: 'Eligibility',
@@ -26,10 +26,13 @@ export default function ArticleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: articles = [], isLoading } = useArticles();
 
-  const article = mockEducation.find((a) => a.id === id);
+  const article = articles.find((a) => a.id === id);
 
   if (!article) {
+    // Still loading the cached list — hold rather than flashing "not found".
+    if (isLoading) return <View style={[styles.flex, { paddingTop: insets.top }]} />;
     return (
       <View style={[styles.flex, { paddingTop: insets.top + Spacing.lg }]}>
         <ScreenHeader title="Article" showBack onBack={() => router.back()} large={false} />

@@ -1,6 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputProps,
+  type TextStyle,
+} from 'react-native';
 
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -41,7 +48,7 @@ export function Input({ label, icon, error, hint, style, ...rest }: InputProps) 
           />
         ) : null}
         <TextInput
-          style={[styles.input, { color: theme.text, fontFamily: Fonts.sans }, style]}
+          style={[styles.input, webNoOutline, { color: theme.text, fontFamily: Fonts.sans }, style]}
           placeholderTextColor={theme.textTertiary}
           onFocus={(e) => {
             setFocused(true);
@@ -66,6 +73,13 @@ export function Input({ label, icon, error, hint, style, ...rest }: InputProps) 
     </View>
   );
 }
+
+// The field's brand border is the focus ring; suppress the browser's default
+// outline so web doesn't stack a second ring on top of it. `outlineStyle:
+// 'none'` is a valid react-native-web style but missing from RN's TS types,
+// and width alone can't disable a UA ring drawn with outline-style auto.
+const webNoOutline =
+  Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 
 const styles = StyleSheet.create({
   wrap: { gap: Spacing.sm },

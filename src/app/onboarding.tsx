@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/hooks/use-theme';
@@ -32,7 +33,7 @@ const SLIDES: Slide[] = [
   {
     icon: 'water',
     title: 'Every drop\nsaves a life',
-    body: 'One donation can help up to three people. Vesta connects you to the moments where you matter most.',
+    body: 'One donation can help up to three people. Blood Bridge connects you to the moments where you matter most.',
   },
   {
     icon: 'pulse',
@@ -87,12 +88,20 @@ export default function Onboarding() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.top}>
           <ThemedText type="headline" style={styles.brand}>
-            Vesta
+            Blood Bridge
           </ThemedText>
           {!isLast && (
-            <ThemedText type="callout" onPress={skip} style={styles.skip}>
-              Skip
-            </ThemedText>
+            <PressableScale
+              onPress={skip}
+              haptic="light"
+              accessibilityRole="button"
+              accessibilityLabel="Skip onboarding"
+              hitSlop={8}
+              style={styles.skipBtn}>
+              <ThemedText type="callout" style={styles.skip}>
+                Skip
+              </ThemedText>
+            </PressableScale>
           )}
         </View>
 
@@ -130,7 +139,7 @@ export default function Onboarding() {
             onPress={advance}
             fullWidth
             size="lg"
-            variant="secondary"
+            variant="inverse"
             style={styles.cta}
           />
         </View>
@@ -158,6 +167,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   brand: { color: '#FFFFFF', letterSpacing: 0.5 },
+  skipBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
   skip: { color: 'rgba(255,255,255,0.85)' },
   scroll: { flex: 1 },
   slide: {

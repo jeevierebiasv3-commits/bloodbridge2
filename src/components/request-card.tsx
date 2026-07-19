@@ -33,19 +33,26 @@ export function RequestCard({
   const compatible = !isOwn && viewerType ? canDonateTo(viewerType, request.bloodType) : false;
   const fulfilled = request.unitsFulfilled / request.unitsNeeded;
 
+  const a11yLabel =
+    `${URGENCY_LABEL[request.urgency]} request: ${request.bloodType} blood needed at ` +
+    `${request.hospital}, ${request.city}, ${distanceLabel(request.distanceKm)} away. ` +
+    `${request.unitsFulfilled} of ${request.unitsNeeded} units fulfilled.` +
+    (isOwn ? ' Your request.' : compatible ? ' You can help.' : '');
+
   return (
-    <Card onPress={onPress} padding="base" style={styles.card}>
+    <Card onPress={onPress} accessibilityLabel={a11yLabel} padding="base" style={styles.card}>
       <View style={styles.top}>
         <BloodTypeGlyph type={request.bloodType} size="md" />
         <View style={styles.headText}>
           <View style={styles.titleRow}>
-            <ThemedText type="headline" numberOfLines={1} style={styles.hospital}>
+            <ThemedText type="headline" numberOfLines={2} style={styles.hospital}>
               {request.hospital}
             </ThemedText>
             <Badge
               label={URGENCY_LABEL[request.urgency]}
               tone={URGENCY_TONE[request.urgency]}
               dot
+              style={styles.urgency}
             />
           </View>
           <View style={styles.metaRow}>
@@ -88,8 +95,11 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   top: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center' },
   headText: { flex: 1, gap: 4 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, justifyContent: 'space-between' },
+  // Top-aligned so the badge stays pinned when the hospital name wraps to two
+  // lines instead of truncating.
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, justifyContent: 'space-between' },
   hospital: { flex: 1 },
+  urgency: { marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   units: { flex: 1, gap: 6 },

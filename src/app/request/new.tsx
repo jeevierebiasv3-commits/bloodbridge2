@@ -19,17 +19,18 @@ import {
   useToast,
 } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { useCreateRequest, useProfile } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
 import { haptics } from '@/lib/haptics';
-import { useAppStore } from '@/store/app-store';
-import { BLOOD_TYPES, BloodType, EmergencyRequest, Urgency } from '@/types/domain';
+import { BLOOD_TYPES, BloodType, Urgency } from '@/types/domain';
 
 export default function NewRequestScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { profile, addRequest } = useAppStore();
+  const { data: profile } = useProfile();
+  const createRequest = useCreateRequest();
 
   const [bloodType, setBloodType] = useState<BloodType>(profile?.bloodType ?? 'O+');
   const [units, setUnits] = useState('2');
@@ -46,36 +47,30 @@ export default function NewRequestScreen() {
     [hospital, city, contactPhone, units],
   );
 
-  const submit = () => {
-    if (!valid) {
-      haptics.error();
+  const submit = async () => {
+    if (!valid || createRequest.isPending) {
+      if (!valid) haptics.error();
       return;
     }
-    const now = new Date();
-    const neededBy = new Date(now.getTime() + 1000 * 60 * 60 * 12);
-    const request: EmergencyRequest = {
-      id: `req-${now.getTime()}`,
-      ownerId: profile?.id,
-      patientInitials: patientInitials.trim() || 'A.B.',
-      bloodType,
-      unitsNeeded: Math.max(1, Number(units) || 1),
-      unitsFulfilled: 0,
-      urgency,
-      hospital: hospital.trim(),
-      city: city.trim(),
-      distanceKm: 2.5,
-      neededBy: neededBy.toISOString(),
-      postedAt: now.toISOString(),
-      contactName: contactName.trim() || 'Requester',
-      contactPhone: contactPhone.trim(),
-      note: note.trim() || undefined,
-      status: 'open',
-      respondersCount: 0,
-    };
-    void addRequest(request);
-    haptics.success();
-    toast.show('Request posted to the emergency feed', 'success');
-    router.replace({ pathname: '/request/[id]', params: { id: request.id } });
+    try {
+      const created = await createRequest.mutateAsync({
+        patientInitials: patientInitials.trim() || undefined,
+        bloodType,
+        unitsNeeded: Math.max(1, Number(units) || 1),
+        urgency,
+        hospital: hospital.trim(),
+        city: city.trim(),
+        contactName: contactName.trim() || undefined,
+        contactPhone: contactPhone.trim(),
+        note: note.trim() || undefined,
+      });
+      haptics.success();
+      toast.show('Request posted to the emergency feed', 'success');
+      router.replace({ pathname: '/request/[id]', params: { id: created.id } });
+    } catch {
+      haptics.error();
+      toast.show('Could not post your request. Please try again.', 'danger');
+    }
   };
 
   return (
@@ -120,7 +115,7 @@ export default function NewRequestScreen() {
                       borderColor: active ? theme.brand : theme.border,
                     },
                   ]}>
-                  <ThemedText type="bodyStrong" style={{ color: active ? theme.onColor : theme.text }}>
+                  <ThemedText type="bodyStrong" style={{ color: active ? theme.onBrand : theme.text }}>
                     {t}
                   </ThemedText>
                 </Pressable>
@@ -172,7 +167,7 @@ export default function NewRequestScreen() {
           style={styles.notes}
         />
 
-        <Button label="Post request" fullWidth icon="megaphone" disabled={!valid} onPress={submit} style={styles.submit} />
+        <Button label="Post request" fullWidth icon="megaphone" disabled={!valid} loading={createRequest.isPending} onPress={submit} style={styles.submit} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

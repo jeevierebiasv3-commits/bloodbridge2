@@ -6,8 +6,13 @@
 import { Tabs } from 'expo-router';
 
 import { AppTabBar } from '@/components/app-tab-bar';
+import { usePrefetchAppData } from '@/hooks/api';
 
 export default function TabsLayout() {
+  // Warm every tab's data now, while Home is on screen, so switching tabs is
+  // instant instead of blank-then-pop on a real device. See usePrefetchAppData.
+  usePrefetchAppData();
+
   return (
     <Tabs
       tabBar={(props) => <AppTabBar {...(props as any)} />}

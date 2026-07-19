@@ -1,5 +1,11 @@
 import { type ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  type AccessibilityRole,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Shadow, Spacing } from '@/constants/theme';
@@ -14,6 +20,9 @@ export type CardProps = {
   padding?: keyof typeof Spacing | 0;
   radius?: keyof typeof Radius;
   onPress?: () => void;
+  /** Screen-reader summary of the card. Applied when the card is pressable. */
+  accessibilityLabel?: string;
+  accessibilityRole?: AccessibilityRole;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -24,6 +33,8 @@ export function Card({
   padding = 'lg',
   radius = 'xl',
   onPress,
+  accessibilityLabel,
+  accessibilityRole,
   style,
 }: CardProps) {
   const theme = useTheme();
@@ -53,7 +64,12 @@ export function Card({
 
   if (onPress) {
     return (
-      <PressableScale scaleTo={0.985} onPress={onPress} style={styles.press}>
+      <PressableScale
+        scaleTo={0.985}
+        onPress={onPress}
+        accessibilityRole={accessibilityRole ?? 'button'}
+        accessibilityLabel={accessibilityLabel}
+        style={styles.press}>
         {content}
       </PressableScale>
     );
