@@ -3,15 +3,34 @@
  *   GET   → compose UserProfile from `user` + `profiles`; 404 gates onboarding.
  *   POST  → upsert from the profile-setup wizard (also syncs `user.name`).
  *   PATCH → partial update of an existing profile.
+ *
+ * Stored coordinates are write-only: `toProfile` never emits them, so they are
+ * invisible even to their owner. Only computed distances leave the server.
  */
 import { eq } from 'drizzle-orm';
 
 import { profiles, user as authUser } from '@/db/schema';
+import { isValidLat, isValidLng, roundCoord } from '@/lib/geo';
 import { db } from '@/lib/server/db';
 import { badRequest, handle, json, notFound, readJson } from '@/lib/server/http';
 import { toProfile } from '@/lib/server/serialize';
 import { requireSession } from '@/lib/server/session';
 import type { CreateProfileBody, UpdateProfileBody } from '@/types/api';
+
+/**
+ * Coordinate half of a profile write. Omitted coords leave any stored location
+ * untouched (it is maintained by the location hook, not the profile forms);
+ * explicit null clears it; invalid values are ignored.
+ */
+function coordFields(body: UpdateProfileBody): Partial<typeof profiles.$inferInsert> {
+  if (body.latitude === null || body.longitude === null) {
+    return { latitude: null, longitude: null };
+  }
+  if (isValidLat(body.latitude) && isValidLng(body.longitude)) {
+    return { latitude: roundCoord(body.latitude), longitude: roundCoord(body.longitude) };
+  }
+  return {};
+}
 
 export const GET = handle(async (request) => {
   const { user } = await requireSession(request);
@@ -44,6 +63,7 @@ export const POST = handle(async (request) => {
     dateOfBirth: body.dateOfBirth ?? null,
     avatarColor: body.avatarColor ?? null,
     weightKg: body.weightKg ?? null,
+    ...coordFields(body),
     updatedAt: new Date(),
   };
 
@@ -80,6 +100,7 @@ export const PATCH = handle(async (request) => {
   if (body.dateOfBirth !== undefined) patch.dateOfBirth = body.dateOfBirth ?? null;
   if (body.avatarColor !== undefined) patch.avatarColor = body.avatarColor ?? null;
   if (body.weightKg !== undefined) patch.weightKg = body.weightKg ?? null;
+  Object.assign(patch, coordFields(body));
 
   const [p] = await db
     .update(profiles)

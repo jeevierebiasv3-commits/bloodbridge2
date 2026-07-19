@@ -1,13 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { locationSearchParams } from '@/hooks/use-location';
 import { api } from '@/lib/api';
 import type { CreateRequestBody, RequestWithMine } from '@/types/api';
 import { qk } from './keys';
 
-/** Shared config so the feed hook and the prefetch pass stay in lockstep. */
+/**
+ * Shared config so the feed hook and the prefetch pass stay in lockstep.
+ * Viewer coords are appended at fetch time, never baked into the key.
+ */
 export const requestsQuery = {
   queryKey: qk.requests,
-  queryFn: () => api.get<RequestWithMine[]>('/api/requests'),
+  queryFn: () => api.get<RequestWithMine[]>(`/api/requests${locationSearchParams()}`),
 };
 
 /** Emergency feed — polls every 20s so new requests surface without a refresh. */
@@ -18,7 +22,7 @@ export function useRequests() {
 export function useRequest(id: string) {
   return useQuery({
     queryKey: qk.request(id),
-    queryFn: () => api.get<RequestWithMine>(`/api/requests/${id}`),
+    queryFn: () => api.get<RequestWithMine>(`/api/requests/${id}${locationSearchParams()}`),
     enabled: !!id,
   });
 }

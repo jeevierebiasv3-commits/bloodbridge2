@@ -7,13 +7,14 @@ import { and, count, eq } from 'drizzle-orm';
 
 import { emergencyRequests, profiles, responders, user as authUser } from '@/db/schema';
 import { db } from '@/lib/server/db';
-import { handle, json, notFound } from '@/lib/server/http';
+import { handle, json, notFound, readCoords } from '@/lib/server/http';
 import { toEmergencyRequest, toResponder } from '@/lib/server/serialize';
 import { requireSession } from '@/lib/server/session';
 import type { RequestWithMine } from '@/types/api';
 
 export const GET = handle(async (request, { id }) => {
   const { user } = await requireSession(request);
+  const viewer = readCoords(request);
 
   const [row] = await db.select().from(emergencyRequests).where(eq(emergencyRequests.id, id));
   if (!row) throw notFound('Request not found');
@@ -29,7 +30,7 @@ export const GET = handle(async (request, { id }) => {
     .where(and(eq(responders.requestId, id), eq(responders.userId, user.id)));
 
   const result: RequestWithMine = {
-    ...toEmergencyRequest(row, Number(c)),
+    ...toEmergencyRequest(row, Number(c), viewer),
     myResponse: mine ? { status: mine.status } : null,
   };
 
@@ -43,6 +44,8 @@ export const GET = handle(async (request, { id }) => {
         bloodType: profiles.bloodType,
         city: profiles.city,
         avatarColor: profiles.avatarColor,
+        latitude: profiles.latitude,
+        longitude: profiles.longitude,
       })
       .from(responders)
       .innerJoin(authUser, eq(responders.userId, authUser.id))
@@ -59,8 +62,13 @@ export const GET = handle(async (request, { id }) => {
           avatarColor: x.avatarColor,
           respondedAt: x.respondedAt,
           status: x.status,
+          latitude: x.latitude,
+          longitude: x.longitude,
         },
         row.distanceKm,
+        row.latitude != null && row.longitude != null
+          ? { latitude: row.latitude, longitude: row.longitude }
+          : null,
       ),
     );
   }

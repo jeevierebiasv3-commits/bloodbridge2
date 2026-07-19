@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { locationSearchParams } from '@/hooks/use-location';
 import { api } from '@/lib/api';
 import type {
   Announcement,
@@ -17,9 +18,11 @@ export const donationsQuery = {
   queryFn: () => api.get<Donation[]>('/api/donations'),
 };
 
+// Viewer coords are appended at fetch time (see `locationSearchParams`); the
+// key stays coordinate-free so granting location refreshes in place.
 export const centersQuery = {
   queryKey: qk.centers,
-  queryFn: () => api.get<DonationCenter[]>('/api/centers'),
+  queryFn: () => api.get<DonationCenter[]>(`/api/centers${locationSearchParams()}`),
   staleTime: HOUR,
 };
 

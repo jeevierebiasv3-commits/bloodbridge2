@@ -31,8 +31,22 @@ import {
 } from '../src/db/schema';
 import { auth } from '../src/lib/server/auth';
 import { db } from '../src/lib/server/db';
+import { roundCoord } from '../src/lib/geo';
 
 const DEMO_PASSWORD = 'bloodbridge-demo-123';
+
+/**
+ * Metro Cebu coordinate frame. Demo data is anchored to real localities so that
+ * testing on a real device in Cebu produces plausible distances; center,
+ * hospital and street names stay fictional. Rows sit a few hundred metres off
+ * their anchor so co-located records don't collapse onto the same point.
+ */
+const CITY = {
+  cebu: { name: 'Cebu City', latitude: 10.3111, longitude: 123.8931 },
+  mandaue: { name: 'Mandaue', latitude: 10.3236, longitude: 123.9223 },
+  talisay: { name: 'Talisay', latitude: 10.2447, longitude: 123.8494 },
+  lapulapu: { name: 'Lapu-Lapu', latitude: 10.3103, longitude: 123.9494 },
+} as const;
 
 const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3_600_000);
@@ -71,8 +85,10 @@ async function main() {
       name: 'Central Blood Services',
       kind: 'blood_bank',
       address: '210 Market St',
-      city: 'Downtown',
+      city: CITY.cebu.name,
       distanceKm: 1.2,
+      latitude: 10.3128,
+      longitude: 123.8945,
       openNow: true,
       hours: '8:00 AM – 6:00 PM',
       rating: 4.8,
@@ -83,8 +99,11 @@ async function main() {
       name: 'St. Mary Medical Center',
       kind: 'hospital',
       address: '54 Cathedral Ave',
-      city: 'Downtown',
+      city: CITY.cebu.name,
       distanceKm: 2.3,
+      // ~0.45 km from ctr-1: two Cebu City centers that must not collide.
+      latitude: 10.3089,
+      longitude: 123.8902,
       openNow: true,
       hours: '24 hours',
       rating: 4.6,
@@ -95,8 +114,10 @@ async function main() {
       name: 'Riverside Community Drive',
       kind: 'campaign',
       address: 'Riverside Park Pavilion',
-      city: 'Riverside',
+      city: CITY.talisay.name,
       distanceKm: 5.8,
+      latitude: 10.2461,
+      longitude: 123.8478,
       openNow: false,
       hours: 'Sat 9:00 AM – 3:00 PM',
       rating: 4.9,
@@ -107,8 +128,10 @@ async function main() {
       name: 'Lakeside Blood Bank',
       kind: 'blood_bank',
       address: '900 Lakeshore Blvd',
-      city: 'Lakeside',
+      city: CITY.lapulapu.name,
       distanceKm: 8.1,
+      latitude: 10.3118,
+      longitude: 123.9512,
       openNow: true,
       hours: '9:00 AM – 5:00 PM',
       rating: 4.5,
@@ -216,7 +239,10 @@ async function main() {
       userId: amara,
       bloodType: 'A+',
       phone: '+1 555 0161',
-      city: 'Downtown',
+      city: CITY.cebu.name,
+      // Stored fuzzed, exactly as the live API writes them.
+      latitude: roundCoord(CITY.cebu.latitude),
+      longitude: roundCoord(CITY.cebu.longitude),
       avatarColor: '#EC4899',
       weightKg: 64,
       lastDonationDate: daysAgo(78), // past the 56-day cooldown → eligible
@@ -225,7 +251,9 @@ async function main() {
       userId: daniel,
       bloodType: 'A+',
       phone: '+1 555 0114',
-      city: 'Riverside',
+      city: CITY.talisay.name,
+      latitude: roundCoord(CITY.talisay.latitude),
+      longitude: roundCoord(CITY.talisay.longitude),
       avatarColor: '#3B82F6',
       weightKg: 78,
       lastDonationDate: daysAgo(40), // still cooling down
@@ -234,7 +262,9 @@ async function main() {
       userId: liam,
       bloodType: 'A-',
       phone: '+1 555 0187',
-      city: 'Midtown',
+      city: CITY.mandaue.name,
+      latitude: roundCoord(CITY.mandaue.latitude),
+      longitude: roundCoord(CITY.mandaue.longitude),
       avatarColor: '#10B981',
       weightKg: 71,
       lastDonationDate: daysAgo(200),
@@ -252,8 +282,10 @@ async function main() {
       unitsNeeded: 2,
       urgency: 'urgent',
       hospital: 'Riverside General',
-      city: 'Riverside',
+      city: CITY.talisay.name,
       distanceKm: 5.8,
+      latitude: 10.2432,
+      longitude: 123.8511,
       neededBy: inHours(20),
       postedAt: hoursAgo(2),
       contactName: 'Amara Okafor',
@@ -269,8 +301,11 @@ async function main() {
       unitsNeeded: 4,
       urgency: 'critical',
       hospital: 'St. Mary Medical Center',
-      city: 'Downtown',
+      city: CITY.cebu.name,
       distanceKm: 2.3,
+      // Same site as ctr-2.
+      latitude: 10.3089,
+      longitude: 123.8902,
       neededBy: inHours(6),
       postedAt: hoursAgo(1),
       contactName: 'Dr. Alan Reyes',
@@ -286,8 +321,11 @@ async function main() {
       unitsNeeded: 2,
       urgency: 'urgent',
       hospital: 'Riverside General',
-      city: 'Riverside',
+      city: CITY.talisay.name,
       distanceKm: 5.8,
+      // Same site as req_seed_kl — one hospital, one location.
+      latitude: 10.2432,
+      longitude: 123.8511,
       neededBy: inHours(24),
       postedAt: hoursAgo(3),
       contactName: 'Nurse Priya Shah',
@@ -303,8 +341,10 @@ async function main() {
       unitsNeeded: 3,
       urgency: 'moderate',
       hospital: 'Lakeside Children’s Hospital',
-      city: 'Lakeside',
+      city: CITY.lapulapu.name,
       distanceKm: 8.1,
+      latitude: 10.3095,
+      longitude: 123.9471,
       neededBy: inDays(2),
       postedAt: hoursAgo(9),
       contactName: 'Dr. Lena Osei',
@@ -320,8 +360,10 @@ async function main() {
       unitsNeeded: 1,
       urgency: 'urgent',
       hospital: 'Hope Cancer Institute',
-      city: 'Midtown',
+      city: CITY.mandaue.name,
       distanceKm: 3.7,
+      latitude: 10.3251,
+      longitude: 123.9208,
       neededBy: inHours(18),
       postedAt: hoursAgo(5),
       contactName: 'Coordinator Tomás Vidal',
@@ -338,8 +380,11 @@ async function main() {
       unitsFulfilled: 6,
       urgency: 'routine',
       hospital: 'Central Blood Services',
-      city: 'Downtown',
+      city: CITY.cebu.name,
       distanceKm: 1.2,
+      // Same site as ctr-1.
+      latitude: 10.3128,
+      longitude: 123.8945,
       neededBy: inDays(4),
       postedAt: daysAgo(1),
       contactName: 'Intake Desk',
@@ -359,14 +404,14 @@ async function main() {
 
   // 5. Donation history (drives eligibility + impact stats per user).
   await db.insert(donations).values([
-    { userId: amara, date: daysAgo(78), centerName: 'Central Blood Services', city: 'Downtown', units: 1, type: 'whole' },
-    { userId: amara, date: daysAgo(150), centerName: 'St. Mary Medical Center', city: 'Downtown', units: 1, type: 'power_red' },
-    { userId: amara, date: daysAgo(224), centerName: 'Riverside Community Drive', city: 'Riverside', units: 1, type: 'whole' },
-    { userId: amara, date: daysAgo(300), centerName: 'Central Blood Services', city: 'Downtown', units: 1, type: 'plasma' },
-    { userId: amara, date: daysAgo(372), centerName: 'Lakeside Blood Bank', city: 'Lakeside', units: 1, type: 'whole' },
-    { userId: daniel, date: daysAgo(40), centerName: 'Central Blood Services', city: 'Downtown', units: 1, type: 'whole' },
-    { userId: daniel, date: daysAgo(130), centerName: 'St. Mary Medical Center', city: 'Downtown', units: 1, type: 'whole' },
-    { userId: liam, date: daysAgo(200), centerName: 'Lakeside Blood Bank', city: 'Lakeside', units: 1, type: 'whole' },
+    { userId: amara, date: daysAgo(78), centerName: 'Central Blood Services', city: CITY.cebu.name, units: 1, type: 'whole' },
+    { userId: amara, date: daysAgo(150), centerName: 'St. Mary Medical Center', city: CITY.cebu.name, units: 1, type: 'power_red' },
+    { userId: amara, date: daysAgo(224), centerName: 'Riverside Community Drive', city: CITY.talisay.name, units: 1, type: 'whole' },
+    { userId: amara, date: daysAgo(300), centerName: 'Central Blood Services', city: CITY.cebu.name, units: 1, type: 'plasma' },
+    { userId: amara, date: daysAgo(372), centerName: 'Lakeside Blood Bank', city: CITY.lapulapu.name, units: 1, type: 'whole' },
+    { userId: daniel, date: daysAgo(40), centerName: 'Central Blood Services', city: CITY.cebu.name, units: 1, type: 'whole' },
+    { userId: daniel, date: daysAgo(130), centerName: 'St. Mary Medical Center', city: CITY.cebu.name, units: 1, type: 'whole' },
+    { userId: liam, date: daysAgo(200), centerName: 'Lakeside Blood Bank', city: CITY.lapulapu.name, units: 1, type: 'whole' },
   ]);
 
   // 6. One upcoming appointment for Amara.

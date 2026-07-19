@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EnableLocationCard } from '@/components/enable-location-card';
 import { RequestCard } from '@/components/request-card';
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -332,6 +333,9 @@ export default function HomeScreen() {
           ))}
         </View>
       </FadeIn>
+
+      {/* Distances above are the seeded fallbacks until location is granted. */}
+      <EnableLocationCard />
 
       {/* Nearby center */}
       {nearestCenter ? (

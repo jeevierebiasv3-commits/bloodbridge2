@@ -10,12 +10,14 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EnableLocationCard } from '@/components/enable-location-card';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, Button, Card, FadeIn, ScreenHeader, useToast } from '@/components/ui';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
 import { useBookAppointment, useCenters } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
+import { distanceLabel } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
 import type { Donation } from '@/types/domain';
 
@@ -107,6 +109,9 @@ export default function BookScreen() {
         large={false}
       />
 
+      {/* Ordering below is by seeded distance until location is granted. */}
+      <EnableLocationCard />
+
       {/* Center selection */}
       <FadeIn>
         <ThemedText type="headline" style={styles.section}>
@@ -137,7 +142,7 @@ export default function BookScreen() {
                       {c.name}
                     </ThemedText>
                     <ThemedText type="footnote" color="textSecondary" numberOfLines={1}>
-                      {c.distanceKm} km · {c.openNow ? 'Open now' : 'Closed'} · ★ {c.rating.toFixed(1)}
+                      {distanceLabel(c.distanceKm)} · {c.openNow ? 'Open now' : 'Closed'} · ★ {c.rating.toFixed(1)}
                     </ThemedText>
                   </View>
                   <Ionicons

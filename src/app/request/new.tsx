@@ -4,9 +4,18 @@
  * See design.md §Feed, §5 Components (Input, SegmentedControl).
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -20,6 +29,7 @@ import {
 } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useCreateRequest, useProfile } from '@/hooks/api';
+import { useEnableLocation, useLocationState } from '@/hooks/use-location';
 import { useTheme } from '@/hooks/use-theme';
 import { haptics } from '@/lib/haptics';
 import { BLOOD_TYPES, BloodType, Urgency } from '@/types/domain';
@@ -42,6 +52,25 @@ export default function NewRequestScreen() {
   const [contactPhone, setContactPhone] = useState(profile?.phone ?? '');
   const [note, setNote] = useState('');
 
+  // The requester is usually standing in the hospital, so attaching coords is
+  // opt-out once location is granted — but it stays strictly optional.
+  const { data: location } = useLocationState();
+  const enableLocation = useEnableLocation();
+  const [wantsLocation, setWantsLocation] = useState(true);
+  const canAttachLocation = location?.status === 'granted' || location?.status === 'undetermined';
+  const attachedCoords =
+    location?.status === 'granted' && wantsLocation ? location.coords : undefined;
+
+  const toggleLocation = () => {
+    if (location?.status === 'granted') {
+      haptics.selection();
+      setWantsLocation((on) => !on);
+      return;
+    }
+    // Undetermined: the most justified moment to ask for the grant.
+    enableLocation.mutate();
+  };
+
   const valid = useMemo(
     () => hospital.trim().length > 1 && city.trim().length > 1 && contactPhone.trim().length >= 6 && Number(units) > 0,
     [hospital, city, contactPhone, units],
@@ -63,6 +92,7 @@ export default function NewRequestScreen() {
         contactName: contactName.trim() || undefined,
         contactPhone: contactPhone.trim(),
         note: note.trim() || undefined,
+        ...attachedCoords,
       });
       haptics.success();
       toast.show('Request posted to the emergency feed', 'success');
@@ -154,6 +184,43 @@ export default function NewRequestScreen() {
 
         <Input label="Hospital / facility" value={hospital} onChangeText={setHospital} placeholder="e.g. St. Mary's Medical Center" icon="business-outline" />
         <Input label="City" value={city} onChangeText={setCity} placeholder="City" icon="location-outline" />
+
+        {/* Hidden entirely once location is declined — the request posts fine
+            without coords, and a dead row would only advertise a lost option. */}
+        {canAttachLocation ? (
+          <Pressable
+            onPress={toggleLocation}
+            disabled={enableLocation.isPending}
+            accessibilityRole="switch"
+            accessibilityLabel="Attach my current location to this request"
+            accessibilityState={{ checked: Boolean(attachedCoords) }}
+            style={[
+              styles.locationRow,
+              {
+                backgroundColor: attachedCoords ? theme.brandSubtle : theme.surfaceSunken,
+                borderColor: attachedCoords ? theme.brand : theme.border,
+              },
+            ]}>
+            {enableLocation.isPending ? (
+              <ActivityIndicator size="small" color={theme.textSecondary} />
+            ) : (
+              <Ionicons
+                name={attachedCoords ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={attachedCoords ? theme.brand : theme.borderStrong}
+              />
+            )}
+            <View style={styles.locationBody}>
+              <ThemedText type="bodyStrong">
+                {attachedCoords ? 'Using your current location' : 'Attach my current location'}
+              </ThemedText>
+              <ThemedText type="caption" color="textSecondary">
+                Helps donors see the real distance to the hospital.
+              </ThemedText>
+            </View>
+          </Pressable>
+        ) : null}
+
         <Input label="Patient initials (optional)" value={patientInitials} onChangeText={setPatientInitials} placeholder="A.B." autoCapitalize="characters" icon="person-outline" />
         <Input label="Contact name" value={contactName} onChangeText={setContactName} placeholder="Who should donors reach?" icon="person-circle-outline" />
         <Input label="Contact phone" value={contactPhone} onChangeText={setContactPhone} placeholder="Phone number" keyboardType="phone-pad" icon="call-outline" />
@@ -189,6 +256,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   row: { flexDirection: 'row', gap: Spacing.base, alignItems: 'flex-end' },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+  },
+  locationBody: { flex: 1, gap: 2 },
   unitsField: { flex: 1 },
   glyphPreview: { paddingBottom: 2 },
   notes: { minHeight: 80, textAlignVertical: 'top', paddingTop: Spacing.md },

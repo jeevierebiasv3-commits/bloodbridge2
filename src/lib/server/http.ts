@@ -4,6 +4,8 @@
  * unexpected error becomes a 500. Server-only.
  */
 
+import { type Coords, isValidLat, isValidLng } from '@/lib/geo';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -36,6 +38,22 @@ export async function readJson<T>(request: Request): Promise<T> {
   } catch {
     throw badRequest('Invalid JSON body');
   }
+}
+
+/**
+ * The viewer's coordinates from `?lat=&lng=`. Missing or malformed params yield
+ * null rather than a 400 — distances degrade to stored fallbacks, and a bad
+ * param must never break the 20s feed poll.
+ */
+export function readCoords(request: Request): Coords | null {
+  const { searchParams } = new URL(request.url);
+  const rawLat = searchParams.get('lat')?.trim();
+  const rawLng = searchParams.get('lng')?.trim();
+  if (!rawLat || !rawLng) return null;
+  const latitude = Number(rawLat);
+  const longitude = Number(rawLng);
+  if (!isValidLat(latitude) || !isValidLng(longitude)) return null;
+  return { latitude, longitude };
 }
 
 type Ctx = Record<string, string>;

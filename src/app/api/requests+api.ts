@@ -8,13 +8,15 @@ import { count, desc, eq, ne } from 'drizzle-orm';
 
 import { emergencyRequests, responders } from '@/db/schema';
 import { db } from '@/lib/server/db';
-import { badRequest, handle, json, readJson } from '@/lib/server/http';
+import { isValidLat, isValidLng } from '@/lib/geo';
+import { badRequest, handle, json, readCoords, readJson } from '@/lib/server/http';
 import { cityDistanceKm, toEmergencyRequest } from '@/lib/server/serialize';
 import { requireSession } from '@/lib/server/session';
 import type { CreateRequestBody, RequestWithMine } from '@/types/api';
 
 export const GET = handle(async (request) => {
   const { user } = await requireSession(request);
+  const viewer = readCoords(request);
 
   const rows = await db
     .select()
@@ -37,7 +39,7 @@ export const GET = handle(async (request) => {
   const feed: RequestWithMine[] = rows.map((r) => {
     const status = mineByRequest.get(r.id);
     return {
-      ...toEmergencyRequest(r, countByRequest.get(r.id) ?? 0),
+      ...toEmergencyRequest(r, countByRequest.get(r.id) ?? 0, viewer),
       myResponse: status ? { status } : null,
     };
   });
@@ -58,6 +60,10 @@ export const POST = handle(async (request) => {
   const city = body.city.trim();
   const neededBy = body.neededBy ? new Date(body.neededBy) : new Date(Date.now() + 12 * 3_600_000);
 
+  // Hospital coords are a nice-to-have: bad GPS must never block a blood
+  // request, so invalid values are dropped and the city fallback stands.
+  const hasCoords = isValidLat(body.latitude) && isValidLng(body.longitude);
+
   const [row] = await db
     .insert(emergencyRequests)
     .values({
@@ -69,6 +75,8 @@ export const POST = handle(async (request) => {
       hospital: body.hospital.trim(),
       city,
       distanceKm: cityDistanceKm(city),
+      latitude: hasCoords ? body.latitude : null,
+      longitude: hasCoords ? body.longitude : null,
       neededBy,
       contactName: body.contactName?.trim() || user.name || 'Requester',
       contactPhone: body.contactPhone.trim(),

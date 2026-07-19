@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { locationQuery } from '@/hooks/use-location';
 import { appointmentsQuery } from './use-appointments';
 import { announcementsQuery, articlesQuery, centersQuery, donationsQuery } from './use-content';
 import { requestsQuery } from './use-requests';
@@ -16,6 +17,10 @@ import { requestsQuery } from './use-requests';
 export function usePrefetchAppData() {
   const qc = useQueryClient();
   useEffect(() => {
+    // Runs alongside the rest rather than gating it: a slow GPS fix must never
+    // hold up the lists. Whichever fetches raced ahead of the fix get
+    // re-fetched with real coords once it lands.
+    void qc.prefetchQuery(locationQuery);
     void qc.prefetchQuery(requestsQuery);
     void qc.prefetchQuery(appointmentsQuery);
     void qc.prefetchQuery(donationsQuery);

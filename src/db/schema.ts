@@ -6,6 +6,7 @@
 import {
   boolean,
   date,
+  doublePrecision,
   integer,
   pgEnum,
   pgTable,
@@ -64,6 +65,9 @@ export const profiles = pgTable('profiles', {
   dateOfBirth: date('date_of_birth'),
   avatarColor: text('avatar_color'),
   weightKg: integer('weight_kg'),
+  // Donor's last-known location, fuzzed to ~1 km; never serialized to any client.
+  latitude: doublePrecision('latitude'),
+  longitude: doublePrecision('longitude'),
   lastDonationDate: timestamp('last_donation_date', tz),
   createdAt: timestamp('created_at', tz).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', tz).notNull().defaultNow(),
@@ -81,8 +85,11 @@ export const emergencyRequests = pgTable('emergency_requests', {
   urgency: urgencyEnum('urgency').notNull(),
   hospital: text('hospital').notNull(),
   city: text('city').notNull(),
-  // Placeholder until real geo lands (v2): server assigns a stable value per city.
+  // Fallback distance (stable per-city hash) used whenever either side lacks coords.
   distanceKm: real('distance_km').notNull(),
+  // Hospital location, optional: only set when the creator attaches their device location.
+  latitude: doublePrecision('latitude'),
+  longitude: doublePrecision('longitude'),
   neededBy: timestamp('needed_by', tz).notNull(),
   postedAt: timestamp('posted_at', tz).notNull().defaultNow(),
   contactName: text('contact_name').notNull(),
@@ -127,6 +134,8 @@ export const donationCenters = pgTable('donation_centers', {
   address: text('address').notNull(),
   city: text('city').notNull(),
   distanceKm: real('distance_km').notNull(),
+  latitude: doublePrecision('latitude'),
+  longitude: doublePrecision('longitude'),
   openNow: boolean('open_now').notNull().default(true),
   hours: text('hours').notNull(),
   rating: real('rating').notNull(),

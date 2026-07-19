@@ -25,6 +25,12 @@ export interface CreateProfileBody {
   dateOfBirth?: string; // ISO date
   avatarColor?: string;
   weightKg?: number;
+  /**
+   * Optional device coords; stored fuzzed (~1 km) server-side and never
+   * serialized back to any client. Send null to clear a stored location.
+   */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export type UpdateProfileBody = Partial<CreateProfileBody>;
@@ -40,6 +46,9 @@ export interface CreateRequestBody {
   contactName?: string;
   contactPhone: string;
   note?: string;
+  /** Optional hospital coords from the creator's device; dropped if invalid. */
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface CreateAppointmentBody {
