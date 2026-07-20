@@ -1,4 +1,4 @@
-import { BloodType } from '@/types/domain';
+import { BloodType, Donation, UserProfile } from '@/types/domain';
 
 /** Who a donor of type X can give red cells to (recipient types). */
 const DONOR_TO_RECIPIENTS: Record<BloodType, BloodType[]> = {
@@ -58,4 +58,16 @@ export function computeEligibility(lastDonationISO?: string, now = new Date()): 
     nextEligibleDate: next,
     progress: Math.max(0, Math.min(1, elapsed / DONATION_INTERVAL_DAYS)),
   };
+}
+
+/**
+ * The donor's most recent donation date for eligibility purposes: the profile's
+ * `lastDonationDate` if set, otherwise the newest `donations` row. Shared by
+ * Home, Donor, and the respond flow so they compute the same cooldown.
+ */
+export function effectiveLastDonation(
+  profile?: Pick<UserProfile, 'lastDonationDate'>,
+  donations?: Pick<Donation, 'date'>[],
+): string | undefined {
+  return profile?.lastDonationDate ?? donations?.[0]?.date;
 }

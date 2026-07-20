@@ -18,8 +18,8 @@ import {
   SkeletonCard,
 } from '@/components/ui';
 import { BottomTabInset, Spacing } from '@/constants/theme';
-import { useProfile, useRequests } from '@/hooks/api';
-import { canDonateTo } from '@/lib/blood';
+import { useDonations, useProfile, useRequests } from '@/hooks/api';
+import { canDonateTo, computeEligibility, effectiveLastDonation } from '@/lib/blood';
 import { URGENCY_RANK } from '@/types/domain';
 
 type Filter = 'all' | 'compatible' | 'critical';
@@ -29,10 +29,16 @@ export default function FeedScreen() {
   const router = useRouter();
   const { data: requests = [], refetch, isLoading } = useRequests();
   const { data: profile } = useProfile();
+  const { data: donations = [] } = useDonations();
   const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   const bloodType = profile?.bloodType;
+
+  const eligibility = useMemo(
+    () => computeEligibility(effectiveLastDonation(profile, donations)),
+    [profile, donations],
+  );
 
   const visible = useMemo(() => {
     const active = requests.filter((r) => r.status !== 'expired');
@@ -45,6 +51,13 @@ export default function FeedScreen() {
     return filtered.sort((a, b) => {
       const u = URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];
       if (u !== 0) return u;
+      // On the All tab, surface requests the viewer can donate to ahead of
+      // incompatible ones within the same urgency rank (urgency stays primary).
+      if (filter === 'all' && bloodType) {
+        const aCompat = a.ownerId !== profile?.id && canDonateTo(bloodType, a.bloodType);
+        const bCompat = b.ownerId !== profile?.id && canDonateTo(bloodType, b.bloodType);
+        if (aCompat !== bCompat) return aCompat ? -1 : 1;
+      }
       return new Date(a.neededBy).getTime() - new Date(b.neededBy).getTime();
     });
   }, [requests, filter, bloodType, profile?.id]);
@@ -78,7 +91,8 @@ export default function FeedScreen() {
         title="Emergency feed"
         subtitle={
           bloodType
-            ? `${compatibleCount} request${compatibleCount === 1 ? '' : 's'} you can help with`
+            ? `${compatibleCount} request${compatibleCount === 1 ? '' : 's'} you can help with` +
+              (eligibility.eligible ? '' : ` · eligible again in ${eligibility.daysRemaining} days`)
             : 'Live blood requests near you'
         }
         trailing={<Badge label="Live" tone="danger" dot />}
