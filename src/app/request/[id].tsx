@@ -36,7 +36,7 @@ import {
   useRespond,
 } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
-import { canDonateTo, computeEligibility, DONATION_INTERVAL_DAYS, donorsFor, effectiveLastDonation } from '@/lib/blood';
+import { canDonateTo, computeEligibility, PH_DONATION_INTERVAL_DAYS, donorsFor, effectiveLastDonation } from '@/lib/blood';
 import { distanceLabel, firstName, longDate, relativeTime, timeOfDay } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
 import { Responder } from '@/types/domain';
@@ -72,7 +72,7 @@ export default function RequestDetailScreen() {
   const respondMessage = eligibility.eligible
     ? "The requester will be notified that you're available to donate. Please only respond if you intend to donate soon."
     : "The requester will be notified that you're available to donate. " +
-      `You're in your ${DONATION_INTERVAL_DAYS}-day recovery window — eligible again ` +
+      `You're in your ${PH_DONATION_INTERVAL_DAYS}-day recovery window — eligible again ` +
       `${longDate(eligibility.nextEligibleDate.toISOString())} (${eligibility.daysRemaining} days). ` +
       'You can still pledge; the donation would happen after that date.';
 

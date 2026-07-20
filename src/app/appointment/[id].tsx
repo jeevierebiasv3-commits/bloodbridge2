@@ -15,6 +15,7 @@ import { Badge, Button, Card, ConfirmSheet, EmptyState, FadeIn, ScreenHeader, us
 import { Radius, Spacing } from '@/constants/theme';
 import { useAppointment, useCancelAppointment, useCompleteAppointment } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
+import { PH_DONATION_INTERVAL_DAYS } from '@/lib/blood';
 import { dayOfMonth, longDate, monthAbbrev, timeOfDay } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
 import type { Appointment } from '@/types/domain';
@@ -211,7 +212,7 @@ export default function AppointmentDetailScreen() {
       <ConfirmSheet
         visible={completing}
         title="Mark this donation complete?"
-        message="This records the donation to your history and starts your 56-day recovery countdown. Only confirm after you've actually donated."
+        message={`This records the donation to your history and starts your ${PH_DONATION_INTERVAL_DAYS}-day recovery countdown. Only confirm after you've actually donated.`}
         confirmLabel="Yes, I donated"
         cancelLabel="Not yet"
         onConfirm={onComplete}

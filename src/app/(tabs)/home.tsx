@@ -26,7 +26,7 @@ import {
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { canDonateTo, computeEligibility, DONATION_INTERVAL_DAYS, effectiveLastDonation } from '@/lib/blood';
+import { canDonateTo, computeEligibility, PH_DONATION_INTERVAL_DAYS, effectiveLastDonation } from '@/lib/blood';
 import {
   dayOfMonth,
   distanceLabel,
@@ -231,7 +231,7 @@ export default function HomeScreen() {
               }>
               <BloodTypeGlyph type={profile.bloodType} size="lg" onDark />
             </ProgressRing>
-            <ThemedText type="caption" color="onColorTertiary">{DONATION_INTERVAL_DAYS}-day cycle</ThemedText>
+            <ThemedText type="caption" color="onColorTertiary">{PH_DONATION_INTERVAL_DAYS}-day cycle</ThemedText>
           </View>
         </View>
       </FadeIn>

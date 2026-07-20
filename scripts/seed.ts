@@ -214,9 +214,9 @@ async function main() {
       category: 'eligibility',
       icon: 'checkmark-circle',
       body: [
-        'Most healthy adults aged 17 and older who weigh at least 50 kg (110 lb) can donate whole blood.',
+        'Under Philippine Red Cross criteria you can donate whole blood if you are 16 to 65 years old and weigh at least 50 kg. Donors aged 16 and 17 need written parental consent.',
         'You should feel well on the day of your donation and be free of cold or flu symptoms.',
-        'There is a standard waiting period of 56 days between whole-blood donations so your body can replenish red cells.',
+        'There is a waiting period of 3 months between whole-blood donations so your body can replenish red cells. (Guidance you may read from US sources says 8 weeks — the Philippine interval is longer.)',
         'Certain medications, recent travel, or tattoos may require a short deferral. When in doubt, the donation center will screen you.',
       ],
     },
@@ -276,7 +276,7 @@ async function main() {
       longitude: roundCoord(CITY.cebu.longitude),
       avatarColor: '#EC4899',
       weightKg: 64,
-      lastDonationDate: daysAgo(78), // past the 56-day cooldown → eligible
+      lastDonationDate: daysAgo(120), // past the 90-day cooldown → eligible
     },
     {
       userId: daniel,
@@ -438,7 +438,7 @@ async function main() {
 
   // 5. Donation history (drives eligibility + impact stats per user).
   await db.insert(donations).values([
-    { userId: maria, date: daysAgo(78), centerName: 'Philippine Red Cross – Cebu Chapter', city: CITY.cebu.name, units: 1, type: 'whole' },
+    { userId: maria, date: daysAgo(120), centerName: 'Philippine Red Cross – Cebu Chapter', city: CITY.cebu.name, units: 1, type: 'whole' },
     { userId: maria, date: daysAgo(150), centerName: 'Vicente Sotto Memorial Medical Center', city: CITY.cebu.name, units: 1, type: 'power_red' },
     { userId: maria, date: daysAgo(224), centerName: 'Talisay City Bloodletting Drive', city: CITY.talisay.name, units: 1, type: 'whole' },
     { userId: maria, date: daysAgo(300), centerName: 'Philippine Red Cross – Cebu Chapter', city: CITY.cebu.name, units: 1, type: 'plasma' },

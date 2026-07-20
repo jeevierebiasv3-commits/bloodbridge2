@@ -17,6 +17,8 @@ import { Platform } from 'react-native';
 
 import type { NotificationResponse } from 'expo-notifications';
 
+import { PH_DONATION_INTERVAL_DAYS } from '@/lib/blood';
+
 export type PushPermission = 'granted' | 'denied' | 'undetermined' | 'unsupported';
 
 /** Android channel created before any token request (required on Android 13+). */
@@ -116,7 +118,7 @@ export async function scheduleEligibleAgain(nextEligibleDate: Date): Promise<voi
     identifier: ELIGIBLE_AGAIN_ID,
     content: {
       title: "You're eligible to donate again 🎉",
-      body: 'Your 56-day recovery window is over. Book your next visit when you can.',
+      body: `Your ${PH_DONATION_INTERVAL_DAYS}-day recovery window is over. Book your next visit when you can.`,
       data: { url: '/(tabs)/donor' },
     },
     trigger: {
