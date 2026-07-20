@@ -176,7 +176,7 @@ function EditForm({ profile }: { profile: UserProfile }) {
           <Input
             label="Phone"
             icon="call-outline"
-            placeholder="+1 555 000 1234"
+            placeholder="+63 917 123 4567"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"

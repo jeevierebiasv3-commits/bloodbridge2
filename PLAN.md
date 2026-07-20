@@ -19,7 +19,7 @@ Converting the mock, device-only app into a real application while keeping all e
 
 **Neon project:** switching to the user's other Neon account — connection string pending, then `.env` `DATABASE_URL` is updated and `db:push` + `db:seed` re-run. (Old `vesta` project `aged-haze-76929882` in the Jeevie account is being retired.) Secrets live in `.env` (git-ignored) — never in this file.
 
-**Demo accounts (created by seed):** `amara@bloodbridge.demo` (A+, eligible), `daniel@bloodbridge.demo` (A+, cooling down), `liam@bloodbridge.demo` (A-) — password `bloodbridge-demo-123` for all.
+**Demo accounts (created by seed):** `maria@bloodbridge.demo` (A+, eligible), `daniel@bloodbridge.demo` (A+, cooling down), `miguel@bloodbridge.demo` (A-) — password `bloodbridge-demo-123` for all.
 
 ---
 
@@ -143,7 +143,7 @@ Via expo-web preview (launch config `expo-web`), checking Neon rows after each s
 1. Sign up fresh → profile-setup wizard → home. DB: `user` + `profiles` rows; donations empty (zero-state renders).
 2. Feed shows seeded requests (fresh relative times); All / Can help / Critical filters work.
 3. Create request → appears in feed as yours; DB row has your `owner_id`.
-4. Sign out → sign in `amara@bloodbridge.demo` / `bloodbridge-demo-123` → respond to that request (button flips optimistically; DB `responders` row `offered`); responding twice → graceful 409.
+4. Sign out → sign in `maria@bloodbridge.demo` / `bloodbridge-demo-123` → respond to that request (button flips optimistically; DB `responders` row `offered`); responding twice → graceful 409.
 5. Back as owner → detail lists responder → confirm → DB `units_fulfilled`/`status` recomputed (`partial`/`fulfilled`).
 6. Book appointment → shows on home; cancel → status `cancelled` in DB.
 7. Reload mid-session → lands on home without flicker; sign out/in → data persists.
