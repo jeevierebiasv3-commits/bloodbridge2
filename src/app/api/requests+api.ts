@@ -10,6 +10,7 @@ import { emergencyRequests, responders } from '@/db/schema';
 import { db } from '@/lib/server/db';
 import { isValidLat, isValidLng } from '@/lib/geo';
 import { badRequest, handle, json, readCoords, readJson } from '@/lib/server/http';
+import { notifyMatchingDonors } from '@/lib/server/push';
 import { cityDistanceKm, toEmergencyRequest } from '@/lib/server/serialize';
 import { requireSession } from '@/lib/server/session';
 import type { CreateRequestBody, RequestWithMine } from '@/types/api';
@@ -83,6 +84,12 @@ export const POST = handle(async (request) => {
       note: body.note?.trim() || null,
     })
     .returning();
+
+  // Fire-and-forget: a push failure (Expo down, bad token) must never fail or
+  // delay the blood request itself. Never awaited before the 201.
+  void notifyMatchingDonors(row).catch((err) =>
+    console.error('[push] fan-out failed', err),
+  );
 
   const created: RequestWithMine = { ...toEmergencyRequest(row, 0), myResponse: null };
   return json(created, 201);

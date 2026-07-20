@@ -7,10 +7,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnableLocationCard } from '@/components/enable-location-card';
+import { EnablePushCard } from '@/components/enable-push-card';
 import { RequestCard } from '@/components/request-card';
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -25,7 +26,7 @@ import {
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { canDonateTo, computeEligibility, DONATION_INTERVAL_DAYS } from '@/lib/blood';
+import { canDonateTo, computeEligibility, DONATION_INTERVAL_DAYS, effectiveLastDonation } from '@/lib/blood';
 import {
   dayOfMonth,
   distanceLabel,
@@ -72,8 +73,8 @@ export default function HomeScreen() {
   }, [refetch]);
 
   const eligibility = useMemo(
-    () => computeEligibility(profile?.lastDonationDate),
-    [profile?.lastDonationDate],
+    () => computeEligibility(effectiveLastDonation(profile, donations)),
+    [profile, donations],
   );
 
   // Only requests this donor can actually serve — most urgent first, nearest
@@ -337,10 +338,16 @@ export default function HomeScreen() {
       {/* Distances above are the seeded fallbacks until location is granted. */}
       <EnableLocationCard />
 
+      {/* Blood-need push opt-in — self-hides once the permission is answered. */}
+      <EnablePushCard />
+
       {/* Nearby center */}
       {nearestCenter ? (
         <FadeIn delay={280}>
-          <SectionHeader title="Nearby donation center" />
+          <SectionHeader
+            title="Nearby donation center"
+            {...(Platform.OS !== 'web' ? { actionLabel: 'Map', onAction: () => router.push('/map') } : {})}
+          />
           <Card
             onPress={() => router.push('/book')}
             accessibilityLabel={`${nearestCenter.name}, ${distanceLabel(nearestCenter.distanceKm)} away, ${nearestCenter.openNow ? 'open now' : 'closed'}. Book a visit.`}>

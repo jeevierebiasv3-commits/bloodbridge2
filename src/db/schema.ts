@@ -114,6 +114,21 @@ export const responders = pgTable(
   (t) => [uniqueIndex('responders_request_user_unique').on(t.requestId, t.userId)],
 );
 
+/**
+ * Expo push tokens, one row per device. Separate from `profiles` so a user can
+ * register several devices, and a dead token can be pruned per-device (on an
+ * Expo `DeviceNotRegistered` receipt) without touching the profile.
+ */
+export const pushTokens = pgTable('push_tokens', {
+  id: id('ptk'),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(), // ExponentPushToken[...]
+  platform: text('platform').notNull(), // 'ios' | 'android'
+  updatedAt: timestamp('updated_at', tz).notNull().defaultNow(),
+});
+
 export const donations = pgTable('donations', {
   id: id('don'),
   userId: text('user_id')

@@ -1,8 +1,8 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -10,21 +10,34 @@ import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useScheme } from '@/hooks/use-theme';
 import { authClient } from '@/lib/auth-client';
+import { configureNotificationHandler, useNotificationObserver } from '@/lib/notifications';
 import { queryClient } from '@/lib/query';
 import { AppProvider, useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync();
+
+// Foreground banner behavior — set once at module load, before any render.
+configureNotificationHandler();
 
 function RootNavigator() {
   const { hydrated } = useAppStore();
   const { isPending } = authClient.useSession();
   const scheme = useScheme();
   const colors = Colors[scheme];
+  const router = useRouter();
 
   const ready = hydrated && !isPending;
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
+
+  // Tapping a push (foreground, background, or cold start) deep-links to its
+  // target route. `data.url` is always an in-app path we own.
+  const navigate = useCallback(
+    (url: string) => router.push(url as Parameters<typeof router.push>[0]),
+    [router],
+  );
+  useNotificationObserver(navigate);
 
   if (!ready) return null;
 
@@ -54,6 +67,7 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="request/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="map" options={{ presentation: 'card' }} />
         <Stack.Screen name="appointment/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen
           name="request/new"
