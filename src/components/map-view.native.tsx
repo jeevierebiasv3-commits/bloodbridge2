@@ -7,13 +7,20 @@
  * — no new endpoints or query keys. Coordinates arrive from the server (centers
  * exact, requests fuzzed to ~110 m); rows without coords simply have no pin.
  *
- * Android + Expo Go caveat: Google Maps needs an API key applied at native build
- * time, which Expo Go can't inject — so on Android the map renders as a blank
- * frame there. We detect that one combination and show the fallback instead; iOS
- * (Apple Maps, no key) and any dev/standalone build get the real map.
+ * Android needs a Google Maps API key, and a missing one is not a blank map — it
+ * is `IllegalStateException: API key not found` thrown from MapView.onCreate,
+ * inside the native view. That is a native crash, so no error boundary or
+ * try/catch can contain it; the only safe move is to not mount MapView unless
+ * the key can actually be there. Hence `androidMapReady` below.
+ *
+ * The SDK 57 docs say "no additional setup is required when testing your project
+ * using Expo Go" — that is not true for Google Maps on Android; a device proved
+ * it. Trust this comment over the docs page.
+ *
+ * iOS is unaffected: Apple Maps needs no key.
  */
 
-import Constants, { ExecutionEnvironment } from 'expo-constants';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -28,12 +35,22 @@ import { distanceLabel } from '@/lib/format';
 import type { Urgency } from '@/types/domain';
 
 /**
- * True only for Android running inside Expo Go — where Google Maps tiles stay
- * blank because the API key is applied at native build time, not by the client.
+ * Can Android actually mount Google Maps in this runtime? Two things must hold,
+ * and checking only one of them is how this broke before:
+ *
+ * 1. A key is declared in app.json (`android.config.googleMaps.apiKey`). Without
+ *    it *no* Android build works — not Expo Go, not a dev build.
+ * 2. We are not in Expo Go. Even with the key declared, Expo Go cannot apply it:
+ *    it lands in the native manifest at build time, and Expo Go's binary was
+ *    built without it.
+ *
+ * `appOwnership` is deprecated but is the only value that separates Expo Go from
+ * a dev build — `executionEnvironment` reports `StoreClient` for both, so gating
+ * on it would keep the map hidden in the dev build that can actually show it.
  */
-const ANDROID_EXPO_GO =
-  Platform.OS === 'android' &&
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const HAS_MAPS_KEY = Boolean(Constants.expoConfig?.android?.config?.googleMaps?.apiKey);
+const androidMapReady = HAS_MAPS_KEY && !IS_EXPO_GO;
 
 // Metro Cebu anchor — where the seed data lives — used until a device fix lands.
 const CEBU_ANCHOR = { latitude: 10.3111, longitude: 123.8931 };
@@ -61,15 +78,15 @@ export function NearbyMap() {
     (r) => (r.status === 'open' || r.status === 'partial') && r.latitude != null && r.longitude != null,
   );
 
-  // Android + Expo Go can't render Google tiles — show the fallback rather than
-  // a blank map frame. Safe as a post-hook early return: the flag is a module
-  // constant, so the branch never changes across renders.
-  if (ANDROID_EXPO_GO) {
+  // Mounting MapView without a usable key crashes the app natively, so bail to a
+  // message instead. Post-hook early return is safe: both flags are module
+  // constants, so the branch never changes across renders.
+  if (Platform.OS === 'android' && !androidMapReady) {
     return (
       <EmptyState
         icon="map-outline"
-        title="Map needs the mobile build"
-        subtitle="The interactive map opens in the BloodBridge app build (or on iOS). Everything else works right here in Expo Go."
+        title="Map needs a Google Maps key"
+        subtitle="Android maps require a Google Maps API key in app.json and a development build — Expo Go can't supply one. Centers and requests are all still listed on the other tabs."
       />
     );
   }
