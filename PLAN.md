@@ -41,22 +41,22 @@ Converting the mock, device-only app into a real application while keeping all e
 - [x] package.json scripts: `db:push`, `db:seed`, `db:studio`.
 
 **Remaining:**
-- [ ] Run `npm run db:seed`.
-- [ ] Verify via Neon MCP `run_sql`: counts on `user` (3), `emergency_requests` (6), `responders` (3), `donation_centers` (4), `announcements` (3), `education_articles` (4), `donations` (8), `appointments` (1).
-- [ ] `npx tsc --noEmit` passes; app still runs unchanged (`expo-web` launch config).
+- [x] Run `npm run db:seed`.
+- [x] Verify via Neon MCP `run_sql`: counts on `user` (3), `emergency_requests` (6), `responders` (3), `donation_centers` (5), `announcements` (3), `education_articles` (4), `donations` (8), `appointments` (1).
+- [x] `npx tsc --noEmit` passes; app still runs unchanged (`expo-web` launch config).
 
 ---
 
 ## Phase 2 — Auth server live
 
-- [ ] `app.json`: change `"web": { "output": "static", … }` → `"output": "server"` (keep favicon).
-- [ ] New `src/app/api/auth/[...auth]+api.ts`:
+- [x] `app.json`: change `"web": { "output": "static", … }` → `"output": "server"` (keep favicon).
+- [x] New `src/app/api/auth/[...auth]+api.ts`:
   ```ts
   import { auth } from '@/lib/server/auth';
   const handler = auth.handler;
   export { handler as GET, handler as POST };
   ```
-- [ ] Restart dev server with `--clear`.
+- [x] Restart dev server with `--clear`.
 
 **Verify (Git Bash curl):**
 ```bash
