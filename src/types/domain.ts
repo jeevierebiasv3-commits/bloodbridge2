@@ -81,6 +81,8 @@ export interface EmergencyRequest {
   status: RequestStatus;
   respondersCount: number;
   responders?: Responder[];
+  latitude?: number; // rounded to ~110 m; present only when the request has coords
+  longitude?: number;
 }
 
 export interface DonationCenter {
@@ -94,6 +96,8 @@ export interface DonationCenter {
   hours: string;
   rating: number;
   needsUrgent?: BloodType[];
+  latitude?: number; // exact; centers are public places
+  longitude?: number;
 }
 
 export interface Appointment {

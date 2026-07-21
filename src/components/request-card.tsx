@@ -31,13 +31,14 @@ export function RequestCard({
   const theme = useTheme();
   const isOwn = !!viewerId && request.ownerId === viewerId;
   const compatible = !isOwn && viewerType ? canDonateTo(viewerType, request.bloodType) : false;
+  const exactMatch = compatible && viewerType === request.bloodType;
   const fulfilled = request.unitsFulfilled / request.unitsNeeded;
 
   const a11yLabel =
     `${URGENCY_LABEL[request.urgency]} request: ${request.bloodType} blood needed at ` +
     `${request.hospital}, ${request.city}, ${distanceLabel(request.distanceKm)} away. ` +
     `${request.unitsFulfilled} of ${request.unitsNeeded} units fulfilled.` +
-    (isOwn ? ' Your request.' : compatible ? ' You can help.' : '');
+    (isOwn ? ' Your request.' : exactMatch ? ' Exact match — you can help.' : compatible ? ' You can help.' : '');
 
   return (
     <Card onPress={onPress} accessibilityLabel={a11yLabel} padding="base" style={styles.card}>
@@ -83,6 +84,8 @@ export function RequestCard({
         </View>
         {isOwn ? (
           <Badge label="Your request" tone="info" />
+        ) : exactMatch ? (
+          <Badge label="Exact match" tone="brand" />
         ) : compatible ? (
           <Badge label="You can help" tone="success" />
         ) : null}

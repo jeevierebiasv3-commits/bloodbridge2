@@ -11,4 +11,6 @@ export const qk = {
   // Device state, not an endpoint: coords live here rather than in the data
   // keys, so GPS jitter can't fragment the cache or break optimistic updates.
   location: ['location'] as const,
+  // Notification permission + registration state, same device-state rationale.
+  push: ['push'] as const,
 };

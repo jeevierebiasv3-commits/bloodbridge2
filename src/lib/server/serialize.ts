@@ -12,7 +12,7 @@ import type {
   emergencyRequests,
   profiles,
 } from '@/db/schema';
-import { type Coords, haversineKm } from '@/lib/geo';
+import { type Coords, haversineKm, roundCoord } from '@/lib/geo';
 import type {
   Announcement,
   Appointment,
@@ -77,6 +77,7 @@ export function toEmergencyRequest(
   respondersCount: number,
   viewer?: Coords | null,
 ): EmergencyRequest {
+  const coords = rowCoords(r);
   return {
     id: r.id,
     ownerId: r.ownerId,
@@ -87,7 +88,11 @@ export function toEmergencyRequest(
     urgency: r.urgency,
     hospital: r.hospital,
     city: r.city,
-    distanceKm: distanceFrom(viewer, rowCoords(r), r.distanceKm),
+    distanceKm: distanceFrom(viewer, coords, r.distanceKm),
+    // Fuzz request coords to ~110 m: they come from the creator's device, which
+    // is usually the hospital but could be their home. Exact coords stay server-side.
+    latitude: coords ? roundCoord(coords.latitude, 3) : undefined,
+    longitude: coords ? roundCoord(coords.longitude, 3) : undefined,
     neededBy: r.neededBy.toISOString(),
     postedAt: r.postedAt.toISOString(),
     contactName: r.contactName,
@@ -154,13 +159,17 @@ export function toDonation(d: DonationRow): Donation {
 }
 
 export function toCenter(c: CenterRow, viewer?: Coords | null): DonationCenter {
+  const coords = rowCoords(c);
   return {
     id: c.id,
     name: c.name,
     kind: c.kind,
     address: c.address,
     city: c.city,
-    distanceKm: distanceFrom(viewer, rowCoords(c), c.distanceKm),
+    distanceKm: distanceFrom(viewer, coords, c.distanceKm),
+    // Centers are public places — exact coords, no fuzzing.
+    latitude: coords?.latitude,
+    longitude: coords?.longitude,
     openNow: c.openNow,
     hours: c.hours,
     rating: c.rating,

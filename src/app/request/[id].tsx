@@ -29,13 +29,14 @@ import { Radius, Spacing } from '@/constants/theme';
 import {
   useCancelRequest,
   useConfirmResponder,
+  useDonations,
   useFulfillRequest,
   useProfile,
   useRequest,
   useRespond,
 } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
-import { canDonateTo, donorsFor } from '@/lib/blood';
+import { canDonateTo, computeEligibility, PH_DONATION_INTERVAL_DAYS, donorsFor, effectiveLastDonation } from '@/lib/blood';
 import { distanceLabel, firstName, longDate, relativeTime, timeOfDay } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
 import { Responder } from '@/types/domain';
@@ -46,6 +47,7 @@ export default function RequestDetailScreen() {
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: profile } = useProfile();
+  const { data: donations = [] } = useDonations();
   const requestQuery = useRequest(id);
   const request = requestQuery.data;
 
@@ -65,6 +67,14 @@ export default function RequestDetailScreen() {
   const responded = request?.myResponse != null;
   const isOwner = !!(request && profile && request.ownerId === profile.id);
   const compatible = request && profile ? canDonateTo(profile.bloodType, request.bloodType) : false;
+  const eligibility = computeEligibility(effectiveLastDonation(profile, donations));
+
+  const respondMessage = eligibility.eligible
+    ? "The requester will be notified that you're available to donate. Please only respond if you intend to donate soon."
+    : "The requester will be notified that you're available to donate. " +
+      `You're in your ${PH_DONATION_INTERVAL_DAYS}-day recovery window — eligible again ` +
+      `${longDate(eligibility.nextEligibleDate.toISOString())} (${eligibility.daysRemaining} days). ` +
+      'You can still pledge; the donation would happen after that date.';
 
   if (requestQuery.isLoading) {
     return (
@@ -170,21 +180,32 @@ export default function RequestDetailScreen() {
                     Your request
                   </ThemedText>
                 </View>
-              ) : compatible ? (
-                <View style={styles.compatRow}>
-                  <Ionicons name="checkmark-circle" size={16} color={theme.success} />
-                  <ThemedText type="footnote" color="success">
-                    You are compatible
-                  </ThemedText>
-                </View>
-              ) : (
-                <ThemedText type="footnote" color="textTertiary">
-                  Compatible donors: {donorsFor(request.bloodType).join(', ')}
-                </ThemedText>
-              )}
+              ) : null}
             </View>
           </Card>
         </FadeIn>
+
+        {/* Compatibility — explicit for the viewer; hidden for owners and when
+            the profile hasn't loaded. */}
+        {!isOwner && profile ? (
+          <FadeIn delay={30}>
+            <Card variant="tinted" tint={compatible ? theme.successSubtle : theme.warningSubtle}>
+              <View style={styles.compatCard}>
+                <Ionicons
+                  name={compatible ? 'checkmark-circle' : 'alert-circle'}
+                  size={20}
+                  color={compatible ? theme.success : theme.warning}
+                />
+                <ThemedText type="footnote" color="textSecondary" style={styles.compatCardText}>
+                  {compatible
+                    ? `Your ${profile.bloodType} is compatible with this request.`
+                    : `Your ${profile.bloodType} can't donate to ${request.bloodType}. ` +
+                      `${request.bloodType} patients can only receive from: ${donorsFor(request.bloodType).join(', ')}.`}
+                </ThemedText>
+              </View>
+            </Card>
+          </FadeIn>
+        ) : null}
 
         {/* Progress */}
         <FadeIn delay={60}>
@@ -297,6 +318,7 @@ export default function RequestDetailScreen() {
           styles.actionBar,
           { backgroundColor: theme.surfaceElevated, borderColor: theme.border, paddingBottom: insets.bottom || Spacing.base },
         ]}>
+        <View style={styles.actionRow}>
         {isOwner ? (
           isClosed ? (
             <View style={styles.respondBtn}>
@@ -329,12 +351,18 @@ export default function RequestDetailScreen() {
             </View>
           </>
         )}
+        </View>
+        {!isOwner && !responded && !isClosed && !eligibility.eligible ? (
+          <ThemedText type="caption" color="textTertiary" style={styles.actionHint}>
+            Recovering · ready in {eligibility.daysRemaining} days
+          </ThemedText>
+        ) : null}
       </View>
 
       <ConfirmSheet
         visible={confirming}
         title="Respond to this request?"
-        message="The requester will be notified that you're available to donate. Please only respond if you intend to donate soon."
+        message={respondMessage}
         confirmLabel="Yes, I can donate"
         cancelLabel="Not now"
         onConfirm={onRespond}
@@ -422,6 +450,8 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', gap: Spacing.base },
   heroText: { flex: 1, gap: 4 },
   compatRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  compatCard: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  compatCardText: { flex: 1 },
   progressHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.sm },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4 },
@@ -441,11 +471,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: 'row',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  actionRow: { flexDirection: 'row', gap: Spacing.sm },
+  actionHint: { textAlign: 'center', marginTop: Spacing.xs },
   respondBtn: { flex: 1 },
 });

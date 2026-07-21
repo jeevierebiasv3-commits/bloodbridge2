@@ -13,8 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, Button, Card, ConfirmSheet, EmptyState, FadeIn, ScreenHeader, useToast } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
-import { useAppointment, useCancelAppointment } from '@/hooks/api';
+import { useAppointment, useCancelAppointment, useCompleteAppointment } from '@/hooks/api';
 import { useTheme } from '@/hooks/use-theme';
+import { PH_DONATION_INTERVAL_DAYS } from '@/lib/blood';
 import { dayOfMonth, longDate, monthAbbrev, timeOfDay } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
 import type { Appointment } from '@/types/domain';
@@ -48,8 +49,10 @@ export default function AppointmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: appointment, isLoading } = useAppointment(id);
   const cancelAppointment = useCancelAppointment();
+  const completeAppointment = useCompleteAppointment();
 
   const [cancelling, setCancelling] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   if (!appointment) {
     // Still loading the cached list — hold rather than flashing "not found".
@@ -77,6 +80,18 @@ export default function AppointmentDetailScreen() {
     } catch {
       haptics.error();
       toast.show('Could not cancel your appointment. Please try again.', 'danger');
+    }
+  };
+
+  const onComplete = async () => {
+    setCompleting(false);
+    try {
+      await completeAppointment.mutateAsync(appointment.id);
+      haptics.success();
+      toast.show('Donation recorded — thank you! 🩸', 'success');
+    } catch {
+      haptics.error();
+      toast.show('Could not record your donation. Please try again.', 'danger');
     }
   };
 
@@ -156,14 +171,23 @@ export default function AppointmentDetailScreen() {
           { backgroundColor: theme.surfaceElevated, borderColor: theme.border, paddingBottom: insets.bottom || Spacing.base },
         ]}>
         {isActive ? (
-          <Button
-            label="Cancel appointment"
-            variant="secondary"
-            icon="close"
-            fullWidth
-            loading={cancelAppointment.isPending}
-            onPress={() => setCancelling(true)}
-          />
+          <>
+            <Button
+              label="Cancel"
+              variant="secondary"
+              icon="close"
+              loading={cancelAppointment.isPending}
+              onPress={() => setCancelling(true)}
+              style={styles.barButton}
+            />
+            <Button
+              label="Mark as complete"
+              icon="checkmark-circle"
+              loading={completeAppointment.isPending}
+              onPress={() => setCompleting(true)}
+              style={styles.barButton}
+            />
+          </>
         ) : (
           <Button
             label="Book another donation"
@@ -183,6 +207,16 @@ export default function AppointmentDetailScreen() {
         destructive
         onConfirm={onCancel}
         onCancel={() => setCancelling(false)}
+      />
+
+      <ConfirmSheet
+        visible={completing}
+        title="Mark this donation complete?"
+        message={`This records the donation to your history and starts your ${PH_DONATION_INTERVAL_DAYS}-day recovery countdown. Only confirm after you've actually donated.`}
+        confirmLabel="Yes, I donated"
+        cancelLabel="Not yet"
+        onConfirm={onComplete}
+        onCancel={() => setCompleting(false)}
       />
     </>
   );
@@ -239,4 +273,5 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  barButton: { flex: 1 },
 });

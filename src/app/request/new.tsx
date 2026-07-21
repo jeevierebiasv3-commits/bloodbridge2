@@ -182,7 +182,7 @@ export default function NewRequestScreen() {
           />
         </View>
 
-        <Input label="Hospital / facility" value={hospital} onChangeText={setHospital} placeholder="e.g. St. Mary's Medical Center" icon="business-outline" />
+        <Input label="Hospital / facility" value={hospital} onChangeText={setHospital} placeholder="e.g. Vicente Sotto Memorial Medical Center" icon="business-outline" />
         <Input label="City" value={city} onChangeText={setCity} placeholder="City" icon="location-outline" />
 
         {/* Hidden entirely once location is declined — the request posts fine

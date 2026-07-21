@@ -10,6 +10,7 @@ import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EnablePushCard } from '@/components/enable-push-card';
 import { ThemedText } from '@/components/themed-text';
 import {
   Badge,
@@ -26,7 +27,7 @@ import { Radius, Spacing, TabBarClearance } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { computeAchievements } from '@/data/achievements';
 import { useDonations, useProfile, useRequests } from '@/hooks/api';
-import { computeEligibility } from '@/lib/blood';
+import { computeEligibility, effectiveLastDonation } from '@/lib/blood';
 import { longDate, shortDate } from '@/lib/format';
 
 export default function DonorScreen() {
@@ -38,8 +39,8 @@ export default function DonorScreen() {
   const { data: requests = [] } = useRequests();
 
   const eligibility = useMemo(
-    () => computeEligibility(profile?.lastDonationDate ?? donations[0]?.date),
-    [profile?.lastDonationDate, donations],
+    () => computeEligibility(effectiveLastDonation(profile, donations)),
+    [profile, donations],
   );
 
   const totalUnits = donations.reduce((sum, d) => sum + d.units, 0);
@@ -146,6 +147,8 @@ export default function DonorScreen() {
           ) : null}
         </Card>
       </FadeIn>
+
+      <EnablePushCard />
 
       {/* Impact stats */}
       <FadeIn delay={120}>

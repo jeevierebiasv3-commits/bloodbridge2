@@ -7,7 +7,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EnableLocationCard } from '@/components/enable-location-card';
@@ -114,9 +114,22 @@ export default function BookScreen() {
 
       {/* Center selection */}
       <FadeIn>
-        <ThemedText type="headline" style={styles.section}>
-          Center
-        </ThemedText>
+        <View style={[styles.section, styles.sectionRow]}>
+          <ThemedText type="headline">Center</ThemedText>
+          {Platform.OS !== 'web' ? (
+            <PressableScale
+              onPress={() => router.push('/map')}
+              hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
+              accessibilityRole="button"
+              accessibilityLabel="View centers on a map"
+              style={styles.mapLink}>
+              <Ionicons name="map-outline" size={16} color={theme.brand} />
+              <ThemedText type="subhead" color="brand">
+                Map
+              </ThemedText>
+            </PressableScale>
+          ) : null}
+        </View>
         <View style={styles.stack}>
           {centers.map((c) => {
             const active = c.id === center?.id;
@@ -285,6 +298,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.base },
   section: { marginTop: Spacing.sm },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  mapLink: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   stack: { gap: Spacing.sm },
   centerCard: {},
   centerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },

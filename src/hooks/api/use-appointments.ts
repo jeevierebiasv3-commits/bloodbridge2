@@ -39,3 +39,20 @@ export function useCancelAppointment() {
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.appointments }),
   });
 }
+
+/**
+ * Mark a completed visit done. The server also records a donation and advances
+ * the profile's `lastDonationDate`, so refresh all three caches: the appointment
+ * list (status), donation history/impact, and the profile (eligibility countdown).
+ */
+export function useCompleteAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<Appointment>(`/api/appointments/${id}/complete`, {}),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.appointments });
+      void qc.invalidateQueries({ queryKey: qk.donations });
+      void qc.invalidateQueries({ queryKey: qk.profile });
+    },
+  });
+}

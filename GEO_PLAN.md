@@ -65,6 +65,9 @@ Rename the fictional cities to real Metro Cebu localities and anchor coords ther
 | Lakeside  | Lapu-Lapu  | 10.3103, 123.9494   | ~6 km E             |
 
 - [x] 4 centers: spread a few hundred meters around their city anchor (the two Cebu City centers must not collide); keep fictional names + hand-authored `distanceKm` fallbacks.
+
+> **Superseded:** centers and hospitals are no longer fictional. They are now 5 real Metro Cebu facilities (PRC Cebu Chapter, VSMMC, UCMed, Mactan Doctors', Cebu South Medical Center, plus one invented Talisay drive at a real venue), geocoded against OpenStreetMap, with `distanceKm` computed as true great-circle km from the Cebu City anchor. Contact numbers are deliberately non-dialable `+63 917 555 XXXX` placeholders.
+
 - [x] 6 requests: coords near their city anchor with small offsets.
 - [x] 3 demo profiles: `roundCoord`-ed home-city coords.
 - [x] `npm run db:seed` (idempotent).
@@ -117,7 +120,7 @@ Sanity check: a viewer at the Cebu City anchor sees the downtown center ≈0.1�
 ## Verification
 
 **Server** (after `db:push` + `db:seed`, dev server via `expo-web`; curl with cookie jar per PLAN.md pattern):
-1. Sign in as `amara@bloodbridge.demo` → cookie.
+1. Sign in as `maria@bloodbridge.demo` → cookie.
 2. `GET /api/centers` → seeded fallback order; `GET /api/centers?lat=10.3103&lng=123.9494` → Lapu-Lapu center first, ≈0–0.5 km.
 3. `GET /api/requests?lat=10.3111&lng=123.8931` → Cebu City requests <1 km, Mandaue ≈3.5, Talisay ≈8.5; no params → old hash values.
 4. `GET /api/requests?lat=abc&lng=123` → 200 + fallback distances.
